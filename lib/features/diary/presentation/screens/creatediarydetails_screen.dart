@@ -7,7 +7,9 @@
 
 // import 'package:audioplayers/audioplayers.dart';
 // import 'package:cristalteacher/core/appdata/appdata.dart';
+// import 'package:cristalteacher/core/utils/text_stylepicker.dart.dart';
 // import 'package:cristalteacher/features/diary/domain/parameters/save_diary_parameter.dart';
+// import 'package:cristalteacher/features/diary/domain/parameters/update_diary_parameter.dart';
 // import 'package:cristalteacher/features/diary/presentation/cubit/diary_cubit.dart';
 // import 'package:cristalteacher/features/diary/presentation/screens/diary_screen.dart';
 // import 'package:file_picker/file_picker.dart';
@@ -119,6 +121,10 @@
 //   /// True while fetchDiaryUpdateListing is in flight.
 //   bool _isLoadingDiary = false;
 
+//   // Size + colour per field, driven by the shared picker.
+//   EditorTextStyle _titleStyle = EditorTextStyle.initial;
+//   EditorTextStyle _descriptionStyle = EditorTextStyle.initial;
+
 //   VoiceState voiceState = VoiceState.idle;
 
 //   Timer? _recordingTimer;
@@ -148,6 +154,15 @@
 //   final Color primaryColor = const Color(0xff9B73E6);
 //   final Color borderColor = const Color(0xffB7C4D6);
 
+//   /// Palette handed to the shared input field / picker.
+//   EditorStyleTheme get _styleTheme {
+//     return EditorStyleTheme(
+//       accentColor: primaryColor,
+//       fillColor: fieldColor,
+//       borderColor: borderColor,
+//     );
+//   }
+
 //   bool get isEditMode => widget.diaryId != null;
 
 //   @override
@@ -157,8 +172,13 @@
 //     _configureAudioPlayer();
 
 //     // Immediate prefill from whatever the previous screen already had.
-//     _titleController.text = _removeHtml(widget.initialTitle);
-//     _descriptionController.text = _removeHtml(widget.initialDescription);
+//     _titleController.text = EditorTextStyle.stripHtml(widget.initialTitle);
+//     _descriptionController.text = EditorTextStyle.stripHtml(
+//       widget.initialDescription,
+//     );
+
+//     _titleStyle = EditorTextStyle.fromHtml(widget.initialTitle);
+//     _descriptionStyle = EditorTextStyle.fromHtml(widget.initialDescription);
 
 //     _existingFiles.addAll(
 //       widget.existingFiles.where((file) => file.trim().isNotEmpty),
@@ -200,8 +220,11 @@
 
 //   /// Puts the fetched diary onto the form.
 //   void _applyDiaryDetails(dynamic data) {
-//     final String title = _removeHtml(data.diaryTitle);
-//     final String description = _removeHtml(data.description);
+//     final String rawTitle = data.diaryTitle?.toString() ?? '';
+//     final String rawDescription = data.description?.toString() ?? '';
+
+//     final String title = EditorTextStyle.stripHtml(rawTitle);
+//     final String description = EditorTextStyle.stripHtml(rawDescription);
 
 //     final List<String> files = List<String>.from(
 //       data.files ?? const [],
@@ -210,6 +233,10 @@
 //     setState(() {
 //       _titleController.text = title;
 //       _descriptionController.text = description;
+
+//       // Restore the size / colour the diary was saved with.
+//       _titleStyle = EditorTextStyle.fromHtml(rawTitle);
+//       _descriptionStyle = EditorTextStyle.fromHtml(rawDescription);
 
 //       _existingFiles
 //         ..clear()
@@ -220,6 +247,8 @@
 //     debugPrint('EDIT CONTENT APPLIED');
 //     debugPrint('Title      : $title');
 //     debugPrint('Description: $description');
+//     debugPrint('Title style: $_titleStyle');
+//     debugPrint('Desc style : $_descriptionStyle');
 //     debugPrint('Files      : ${files.length}');
 //     debugPrint('==========================================');
 //   }
@@ -270,26 +299,6 @@
 //     _audioPlayer.dispose();
 
 //     super.dispose();
-//   }
-
-//   /// The API stores title and description as HTML.
-//   String _removeHtml(String? value) {
-//     if (value == null || value.trim().isEmpty) {
-//       return '';
-//     }
-
-//     return value
-//         .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
-//         .replaceAll(RegExp(r'</p>', caseSensitive: false), '\n')
-//         .replaceAll(RegExp(r'<[^>]*>'), '')
-//         .replaceAll('&nbsp;', ' ')
-//         .replaceAll('&amp;', '&')
-//         .replaceAll('&lt;', '<')
-//         .replaceAll('&gt;', '>')
-//         .replaceAll('&quot;', '"')
-//         .replaceAll('&#39;', "'")
-//         .replaceAll(RegExp(r'\n\s*\n'), '\n')
-//         .trim();
 //   }
 
 //   String formatApiDate(DateTime date) {
@@ -678,6 +687,7 @@
 //     return files;
 //   }
 
+//   /// Runs the create or the update request, depending on diaryId.
 //   Future<void> _saveDiary() async {
 //     FocusScope.of(context).unfocus();
 
@@ -694,6 +704,8 @@
 //     debugPrint('Subject ID    : ${widget.subjectId}');
 //     debugPrint('Title         : $title');
 //     debugPrint('Description   : $description');
+//     debugPrint('Title style   : $_titleStyle');
+//     debugPrint('Desc style    : $_descriptionStyle');
 //     debugPrint('Voice State   : $voiceState');
 //     debugPrint('Kept files    : ${_existingFiles.length}');
 //     debugPrint('New files     : ${_selectedFiles.length}');
@@ -723,6 +735,10 @@
 //       return;
 //     }
 
+//     // Size / colour travel with the text as inline HTML.
+//     final String styledTitle = _titleStyle.wrapHtml(title);
+//     final String styledDescription = _descriptionStyle.wrapHtml(description);
+
 //     try {
 //       final List<String> apiFiles = await _buildApiFiles();
 
@@ -730,31 +746,48 @@
 
 //       if (!mounted) return;
 
+//       // ---------------- UPDATE ----------------
 //       if (isEditMode) {
-//         // ------------------------------------------------------------
-//         // TODO: update API goes here.
-//         //
-//         // Build its parameter from widget.diaryId!, the ids and dates on
-//         // this screen, title, description and apiFiles, then call
-//         // context.read<DiaryCubit>().<updateMethod>(request);
-//         //
-//         // saveDiary() must NOT be used here — it would insert a second
-//         // diary instead of updating this one.
-//         // ------------------------------------------------------------
+//         final UpdateDiaryParameter request = UpdateDiaryParameter(
+//           accYear: AppData.accYear!,
+//           standardId: widget.standardId,
+//           divisionId: widget.divisionId,
+//           subjectId: widget.subjectId,
+//           employeeId: AppData.employeeId!,
+//           diaryType: null,
+//           diaryTitle: styledTitle,
+//           description: styledDescription,
+//           diaryDate: formatApiDate(widget.diaryDate),
+//           dueDate: formatApiDate(widget.dueDate),
+//           isActive: true,
+//           isFavourite: widget.isFavourite,
+//           branchId: AppData.branchId ?? 1,
+//           modifiedUser: AppData.userId.toString(),
+//           files: apiFiles,
+//           videoUrl: '',
+//         );
 
-//         _showMessage('Update API is not connected yet');
+//         debugPrint('');
+//         debugPrint('==================================================');
+//         debugPrint('UPDATE DIARY REQUEST');
+//         debugPrint('==================================================');
+
+//         _printRequestJson(request.toJson());
+
+//         await context.read<DiaryCubit>().updateDiary(request, widget.diaryId!);
 //         return;
 //       }
 
+//       // ---------------- CREATE ----------------
 //       final SaveDiaryParameter request = SaveDiaryParameter(
 //         accYear: AppData.accYear!,
 //         standardId: widget.standardId,
 //         divisionId: widget.divisionId,
 //         subjectId: widget.subjectId,
 //         employeeId: AppData.employeeId!,
-//         diaryType: 1,
-//         diaryTitle: title,
-//         description: description,
+//         diaryType: null,
+//         diaryTitle: styledTitle,
+//         description: styledDescription,
 //         diaryDate: formatApiDate(widget.diaryDate),
 //         dueDate: formatApiDate(widget.dueDate),
 //         isActive: true,
@@ -770,28 +803,7 @@
 //       debugPrint('SAVE DIARY REQUEST');
 //       debugPrint('==================================================');
 
-//       final Map<String, dynamic> requestJson = request.toJson();
-
-//       requestJson.forEach((key, value) {
-//         if (key == 'files') {
-//           final List<dynamic> files = value is List ? value : [];
-
-//           debugPrint('$key : ${files.length} file(s)');
-
-//           for (int i = 0; i < files.length; i++) {
-//             final String file = files[i].toString();
-
-//             debugPrint(
-//               '  File ${i + 1}: '
-//               '${file.length > 40 ? file.substring(0, 40) : file}',
-//             );
-//           }
-//         } else {
-//           debugPrint('$key : $value');
-//         }
-//       });
-
-//       debugPrint('==================================================');
+//       _printRequestJson(request.toJson());
 
 //       await context.read<DiaryCubit>().saveDiary(request);
 //     } catch (error, stackTrace) {
@@ -800,6 +812,68 @@
 
 //       _showMessage('Unable to prepare attachments');
 //     }
+//   }
+
+//   /// Prints the request without dumping whole base64 payloads.
+//   void _printRequestJson(Map<String, dynamic> requestJson) {
+//     requestJson.forEach((key, value) {
+//       if (key == 'files') {
+//         final List<dynamic> files = value is List ? value : [];
+
+//         debugPrint('$key : ${files.length} file(s)');
+
+//         for (int i = 0; i < files.length; i++) {
+//           final String file = files[i].toString();
+
+//           debugPrint(
+//             '  File ${i + 1}: '
+//             '${file.length > 40 ? file.substring(0, 40) : file}',
+//           );
+//         }
+//       } else {
+//         debugPrint('$key : $value');
+//       }
+//     });
+
+//     debugPrint('==================================================');
+//   }
+
+//   /// Shared cleanup + navigation for both create and update success.
+//   Future<void> _onDiarySubmitted(String apiMessage) async {
+//     _showMessage(
+//       apiMessage.trim().isNotEmpty
+//           ? apiMessage
+//           : isEditMode
+//           ? 'Diary updated successfully'
+//           : 'Diary saved successfully',
+//     );
+
+//     _titleController.clear();
+//     _descriptionController.clear();
+//     _selectedFiles.clear();
+//     _existingFiles.clear();
+
+//     await _deleteRecording();
+
+//     if (!mounted) return;
+
+//     if (isEditMode) {
+//       // diary -> create -> details, so two pops land back on the list the
+//       // user was already looking at, with its filter and date range intact.
+//       // Its edit button awaits this push and reloads the list itself.
+//       Navigator.of(context)
+//         ..pop()
+//         ..pop();
+
+//       return;
+//     }
+
+//     Navigator.of(context).pushAndRemoveUntil(
+//       MaterialPageRoute(builder: (_) => const DiaryTypeScreen()),
+
+//       // Keeps the dashboard and removes the diary creation screens.
+//       (route) => route.isFirst,
+//     );
 //   }
 
 //   void _showMessage(String message) {
@@ -817,6 +891,8 @@
 //     return BlocConsumer<DiaryCubit, DiaryState>(
 //       listenWhen: (previous, current) {
 //         return current is SaveDiarySuccess ||
+//             current is UpdateDiarySuccess ||
+//             current is UpdateDiaryFailure ||
 //             current is FetchDiaryUpdateListingSuccess ||
 //             current is FetchDiaryUpdateListingFailure ||
 //             current is DiaryFailure;
@@ -848,31 +924,20 @@
 //           return;
 //         }
 
-//         // ---------- diary saved ----------
+//         // ---------- diary created ----------
 //         if (state is SaveDiarySuccess) {
-//           final String apiMessage = state.response.message?.toString() ?? '';
+//           await _onDiarySubmitted(state.response.message?.toString() ?? '');
+//           return;
+//         }
 
-//           _showMessage(
-//             apiMessage.trim().isNotEmpty
-//                 ? apiMessage
-//                 : 'Diary saved successfully',
-//           );
+//         // ---------- diary updated ----------
+//         if (state is UpdateDiarySuccess) {
+//           await _onDiarySubmitted(state.response.message?.toString() ?? '');
+//           return;
+//         }
 
-//           _titleController.clear();
-//           _descriptionController.clear();
-//           _selectedFiles.clear();
-//           _existingFiles.clear();
-
-//           await _deleteRecording();
-
-//           if (!context.mounted) return;
-
-//           Navigator.of(context).pushAndRemoveUntil(
-//             MaterialPageRoute(builder: (_) => const DiaryTypeScreen()),
-
-//             // Keeps the dashboard and removes the diary creation screens.
-//             (route) => route.isFirst,
-//           );
+//         if (state is UpdateDiaryFailure) {
+//           _showMessage(state.message);
 //           return;
 //         }
 
@@ -881,7 +946,8 @@
 //         }
 //       },
 //       builder: (context, state) {
-//         final bool isSaving = state is SaveDiaryLoading;
+//         final bool isSaving =
+//             state is SaveDiaryLoading || state is UpdateDiaryLoading;
 
 //         return PopScope(
 //           canPop: !isSaving && voiceState != VoiceState.recording,
@@ -907,35 +973,48 @@
 //                                   ScrollViewKeyboardDismissBehavior.onDrag,
 //                               child: Column(
 //                                 children: [
-//                                   _inputBox(
+//                                   StyledInputField(
 //                                     controller: _titleController,
 //                                     hint: 'Heading Or Title',
-//                                     height: 44,
+//                                     minHeight: 44,
 //                                     enabled: !isSaving,
+//                                     style: _titleStyle,
+//                                     theme: _styleTheme,
+//                                     onStyleChanged: (style) {
+//                                       setState(() {
+//                                         _titleStyle = style;
+//                                       });
+//                                     },
 //                                   ),
 //                                   const SizedBox(height: 14),
-//                                   _inputBox(
+//                                   StyledInputField(
 //                                     controller: _descriptionController,
 //                                     hint: 'Description',
-//                                     height: 118,
+//                                     minHeight: 118,
 //                                     maxLines: 5,
 //                                     enabled: !isSaving,
+//                                     style: _descriptionStyle,
+//                                     theme: _styleTheme,
+//                                     onStyleChanged: (style) {
+//                                       setState(() {
+//                                         _descriptionStyle = style;
+//                                       });
+//                                     },
 //                                   ),
 //                                   const SizedBox(height: 14),
 //                                   _attachmentBox(isSaving),
 
 //                                   // Attachments already on the server.
-//                                   if (_existingFiles.isNotEmpty) ...[
-//                                     const SizedBox(height: 10),
-//                                     _buildExistingFileList(isSaving),
-//                                   ],
+//                                   // if (_existingFiles.isNotEmpty) ...[
+//                                   //   const SizedBox(height: 10),
+//                                   //   _buildExistingFileList(isSaving),
+//                                   // ],
 
-//                                   // Attachments picked in this session.
-//                                   if (_selectedFiles.isNotEmpty) ...[
-//                                     const SizedBox(height: 10),
-//                                     _buildSelectedFileList(isSaving),
-//                                   ],
-
+//                                   // // Attachments picked in this session.
+//                                   // if (_selectedFiles.isNotEmpty) ...[
+//                                   //   const SizedBox(height: 10),
+//                                   //   _buildSelectedFileList(isSaving),
+//                                   // ],
 //                                   const SizedBox(height: 10),
 //                                   const Row(
 //                                     children: [
@@ -1040,50 +1119,76 @@
 //     );
 //   }
 
-//   Widget _inputBox({
-//     required TextEditingController controller,
-//     required String hint,
-//     required double height,
-//     required bool enabled,
-//     int maxLines = 1,
-//   }) {
-//     return Container(
-//       height: height,
-//       decoration: BoxDecoration(
-//         color: fieldColor,
-//         borderRadius: BorderRadius.circular(7),
-//         border: Border.all(color: borderColor),
-//       ),
-//       child: TextField(
-//         controller: controller,
-//         enabled: enabled,
-//         maxLines: maxLines,
-//         textInputAction: maxLines == 1
-//             ? TextInputAction.next
-//             : TextInputAction.newline,
-//         decoration: InputDecoration(
-//           hintText: hint,
-//           hintStyle: const TextStyle(fontSize: 12, color: Colors.black),
-//           suffixIcon: Padding(
-//             padding: const EdgeInsets.all(10),
-//             child: SvgPicture.asset(
-//               'assets/icons/Group (8).svg',
-//               width: 25,
-//               height: 25,
-//             ),
-//           ),
-//           border: InputBorder.none,
-//           contentPadding: const EdgeInsets.symmetric(
-//             horizontal: 12,
-//             vertical: 12,
-//           ),
-//         ),
-//       ),
-//     );
-//   }
+//   // Widget _attachmentBox(bool isSaving) {
+//   //   final int totalFiles = _existingFiles.length + _selectedFiles.length;
 
+//   //   return GestureDetector(
+//   //     onTap: isSaving || _isPickingFiles ? null : _pickAttachments,
+//   //     child: CustomPaint(
+//   //       painter: DashedBorderPainter(),
+//   //       child: Container(
+//   //         width: double.infinity,
+//   //         height: 105,
+//   //         decoration: BoxDecoration(
+//   //           color: Colors.transparent,
+//   //           borderRadius: BorderRadius.circular(8),
+//   //         ),
+//   //         child: Column(
+//   //           mainAxisAlignment: MainAxisAlignment.center,
+//   //           children: [
+//   //             if (_isPickingFiles)
+//   //               SizedBox(
+//   //                 width: 24,
+//   //                 height: 24,
+//   //                 child: CircularProgressIndicator(
+//   //                   strokeWidth: 2,
+//   //                   color: primaryColor,
+//   //                 ),
+//   //               )
+//   //             else
+//   //               SvgPicture.asset(
+//   //                 'assets/icons/Group (9).svg',
+//   //                 width: 24,
+//   //                 height: 24,
+//   //                 fit: BoxFit.contain,
+//   //               ),
+//   //             const SizedBox(height: 6),
+//   //             Text(
+//   //               _isPickingFiles ? 'Selecting...' : 'Attachment',
+//   //               style: const TextStyle(fontSize: 12, color: Colors.black),
+//   //             ),
+//   //             if (totalFiles > 0) ...[
+//   //               const SizedBox(height: 4),
+//   //               Text(
+//   //                 '$totalFiles file${totalFiles == 1 ? '' : 's'} attached',
+//   //                 style: TextStyle(
+//   //                   fontSize: 10,
+//   //                   color: primaryColor,
+//   //                   fontWeight: FontWeight.w500,
+//   //                 ),
+//   //               ),
+//   //             ],
+//   //           ],
+//   //         ),
+//   //       ),
+//   //     ),
+//   //   );
+//   // }
 //   Widget _attachmentBox(bool isSaving) {
-//     final int totalFiles = _existingFiles.length + _selectedFiles.length;
+//     final List<String> existingImages = _existingFiles.where((file) {
+//       final extension = _extensionFromUrl(file);
+
+//       return extension == 'jpg' || extension == 'jpeg' || extension == 'png';
+//     }).toList();
+
+//     final List<SelectedDiaryFile> selectedImages = _selectedFiles.where((file) {
+//       final extension = file.extension.toLowerCase();
+
+//       return extension == 'jpg' || extension == 'jpeg' || extension == 'png';
+//     }).toList();
+
+//     final bool hasImages =
+//         existingImages.isNotEmpty || selectedImages.isNotEmpty;
 
 //     return GestureDetector(
 //       onTap: isSaving || _isPickingFiles ? null : _pickAttachments,
@@ -1091,168 +1196,261 @@
 //         painter: DashedBorderPainter(),
 //         child: Container(
 //           width: double.infinity,
-//           height: 105,
+//           height: 150,
+//           padding: const EdgeInsets.all(8),
 //           decoration: BoxDecoration(
 //             color: Colors.transparent,
 //             borderRadius: BorderRadius.circular(8),
 //           ),
-//           child: Column(
-//             mainAxisAlignment: MainAxisAlignment.center,
-//             children: [
-//               if (_isPickingFiles)
-//                 SizedBox(
-//                   width: 24,
-//                   height: 24,
-//                   child: CircularProgressIndicator(
-//                     strokeWidth: 2,
-//                     color: primaryColor,
+//           child: _isPickingFiles
+//               ? Center(
+//                   child: SizedBox(
+//                     width: 24,
+//                     height: 24,
+//                     child: CircularProgressIndicator(
+//                       strokeWidth: 2,
+//                       color: primaryColor,
+//                     ),
 //                   ),
 //                 )
-//               else
-//                 SvgPicture.asset(
-//                   'assets/icons/Group (9).svg',
-//                   width: 24,
-//                   height: 24,
-//                   fit: BoxFit.contain,
+//               : hasImages
+//               ? ListView(
+//                   scrollDirection: Axis.horizontal,
+//                   children: [
+//                     ...existingImages.asMap().entries.map((entry) {
+//                       final int originalIndex = _existingFiles.indexOf(
+//                         entry.value,
+//                       );
+
+//                       return _imagePreview(
+//                         image: Image.network(
+//                           entry.value,
+//                           fit: BoxFit.cover,
+//                           errorBuilder: (_, __, ___) {
+//                             return const Center(
+//                               child: Icon(
+//                                 Icons.broken_image_outlined,
+//                                 color: Colors.grey,
+//                               ),
+//                             );
+//                           },
+//                         ),
+//                         onRemove: isSaving
+//                             ? null
+//                             : () => _removeExistingAttachment(originalIndex),
+//                       );
+//                     }),
+//                     ...selectedImages.map((file) {
+//                       final int originalIndex = _selectedFiles.indexOf(file);
+
+//                       return _imagePreview(
+//                         image: Image.memory(file.bytes, fit: BoxFit.cover),
+//                         onRemove: isSaving
+//                             ? null
+//                             : () => _removeAttachment(originalIndex),
+//                       );
+//                     }),
+//                     GestureDetector(
+//                       onTap: isSaving ? null : _pickAttachments,
+//                       child: Container(
+//                         width: 90,
+//                         margin: const EdgeInsets.only(left: 8),
+//                         decoration: BoxDecoration(
+//                           color: fieldColor,
+//                           borderRadius: BorderRadius.circular(7),
+//                         ),
+//                         child: Column(
+//                           mainAxisAlignment: MainAxisAlignment.center,
+//                           children: [
+//                             Icon(
+//                               Icons.add_photo_alternate_outlined,
+//                               color: primaryColor,
+//                               size: 27,
+//                             ),
+//                             const SizedBox(height: 5),
+//                             const Text(
+//                               'Add more',
+//                               style: TextStyle(fontSize: 10),
+//                             ),
+//                           ],
+//                         ),
+//                       ),
+//                     ),
+//                   ],
+//                 )
+//               : Column(
+//                   mainAxisAlignment: MainAxisAlignment.center,
+//                   children: [
+//                     SvgPicture.asset(
+//                       'assets/icons/Group (9).svg',
+//                       width: 24,
+//                       height: 24,
+//                       fit: BoxFit.contain,
+//                     ),
+//                     const SizedBox(height: 6),
+//                     const Text(
+//                       'Attachment',
+//                       style: TextStyle(fontSize: 12, color: Colors.black),
+//                     ),
+//                   ],
 //                 ),
-//               const SizedBox(height: 6),
-//               Text(
-//                 _isPickingFiles ? 'Selecting...' : 'Attachment',
-//                 style: const TextStyle(fontSize: 12, color: Colors.black),
-//               ),
-//               if (totalFiles > 0) ...[
-//                 const SizedBox(height: 4),
-//                 Text(
-//                   '$totalFiles file${totalFiles == 1 ? '' : 's'} attached',
-//                   style: TextStyle(
-//                     fontSize: 10,
-//                     color: primaryColor,
-//                     fontWeight: FontWeight.w500,
-//                   ),
-//                 ),
-//               ],
-//             ],
-//           ),
 //         ),
 //       ),
 //     );
 //   }
 
-//   Widget _buildExistingFileList(bool isSaving) {
-//     return ListView.separated(
-//       itemCount: _existingFiles.length,
-//       shrinkWrap: true,
-//       physics: const NeverScrollableScrollPhysics(),
-//       separatorBuilder: (_, __) {
-//         return const SizedBox(height: 7);
-//       },
-//       itemBuilder: (context, index) {
-//         final String fileUrl = _existingFiles[index];
-
-//         return Container(
-//           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-//           decoration: BoxDecoration(
-//             color: fieldColor,
-//             borderRadius: BorderRadius.circular(7),
-//             border: Border.all(color: borderColor.withOpacity(0.6)),
-//           ),
-//           child: Row(
-//             children: [
-//               Icon(
-//                 _getFileIcon(_extensionFromUrl(fileUrl)),
-//                 size: 22,
-//                 color: primaryColor,
-//               ),
-//               const SizedBox(width: 9),
-//               Expanded(
-//                 child: Column(
-//                   crossAxisAlignment: CrossAxisAlignment.start,
-//                   children: [
-//                     Text(
-//                       _fileNameFromUrl(fileUrl),
-//                       maxLines: 1,
-//                       overflow: TextOverflow.ellipsis,
-//                       style: const TextStyle(
-//                         fontSize: 11,
-//                         fontWeight: FontWeight.w500,
-//                       ),
-//                     ),
-//                     const SizedBox(height: 2),
-//                     const Text(
-//                       'Already uploaded',
-//                       style: TextStyle(fontSize: 9, color: Colors.grey),
-//                     ),
-//                   ],
+//   Widget _imagePreview({
+//     required Widget image,
+//     required VoidCallback? onRemove,
+//   }) {
+//     return Container(
+//       width: 125,
+//       margin: const EdgeInsets.only(right: 8),
+//       clipBehavior: Clip.antiAlias,
+//       decoration: BoxDecoration(
+//         color: fieldColor,
+//         borderRadius: BorderRadius.circular(7),
+//       ),
+//       child: Stack(
+//         fit: StackFit.expand,
+//         children: [
+//           image,
+//           Positioned(
+//             top: 5,
+//             right: 5,
+//             child: GestureDetector(
+//               onTap: onRemove,
+//               child: Container(
+//                 width: 24,
+//                 height: 24,
+//                 decoration: const BoxDecoration(
+//                   color: Colors.black54,
+//                   shape: BoxShape.circle,
 //                 ),
+//                 child: const Icon(Icons.close, color: Colors.white, size: 15),
 //               ),
-//               IconButton(
-//                 onPressed: isSaving
-//                     ? null
-//                     : () => _removeExistingAttachment(index),
-//                 visualDensity: VisualDensity.compact,
-//                 icon: const Icon(Icons.close, color: Colors.red, size: 18),
-//               ),
-//             ],
+//             ),
 //           ),
-//         );
-//       },
+//         ],
+//       ),
 //     );
 //   }
 
-//   Widget _buildSelectedFileList(bool isSaving) {
-//     return ListView.separated(
-//       itemCount: _selectedFiles.length,
-//       shrinkWrap: true,
-//       physics: const NeverScrollableScrollPhysics(),
-//       separatorBuilder: (_, __) {
-//         return const SizedBox(height: 7);
-//       },
-//       itemBuilder: (context, index) {
-//         final SelectedDiaryFile file = _selectedFiles[index];
+//   // Widget _buildExistingFileList(bool isSaving) {
+//   //   return ListView.separated(
+//   //     itemCount: _existingFiles.length,
+//   //     shrinkWrap: true,
+//   //     physics: const NeverScrollableScrollPhysics(),
+//   //     separatorBuilder: (_, __) {
+//   //       return const SizedBox(height: 7);
+//   //     },
+//   //     itemBuilder: (context, index) {
+//   //       final String fileUrl = _existingFiles[index];
 
-//         return Container(
-//           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-//           decoration: BoxDecoration(
-//             color: fieldColor,
-//             borderRadius: BorderRadius.circular(7),
-//             border: Border.all(color: borderColor.withOpacity(0.6)),
-//           ),
-//           child: Row(
-//             children: [
-//               Icon(_getFileIcon(file.extension), size: 22, color: primaryColor),
-//               const SizedBox(width: 9),
-//               Expanded(
-//                 child: Column(
-//                   crossAxisAlignment: CrossAxisAlignment.start,
-//                   children: [
-//                     Text(
-//                       file.name,
-//                       maxLines: 1,
-//                       overflow: TextOverflow.ellipsis,
-//                       style: const TextStyle(
-//                         fontSize: 11,
-//                         fontWeight: FontWeight.w500,
-//                       ),
-//                     ),
-//                     const SizedBox(height: 2),
-//                     Text(
-//                       _formatFileSize(file.size),
-//                       style: const TextStyle(fontSize: 9, color: Colors.grey),
-//                     ),
-//                   ],
-//                 ),
-//               ),
-//               IconButton(
-//                 onPressed: isSaving ? null : () => _removeAttachment(index),
-//                 visualDensity: VisualDensity.compact,
-//                 icon: const Icon(Icons.close, color: Colors.red, size: 18),
-//               ),
-//             ],
-//           ),
-//         );
-//       },
-//     );
-//   }
+//   //       return Container(
+//   //         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+//   //         decoration: BoxDecoration(
+//   //           color: fieldColor,
+//   //           borderRadius: BorderRadius.circular(7),
+//   //           border: Border.all(color: borderColor.withOpacity(0.6)),
+//   //         ),
+//   //         child: Row(
+//   //           children: [
+//   //             Icon(
+//   //               _getFileIcon(_extensionFromUrl(fileUrl)),
+//   //               size: 22,
+//   //               color: primaryColor,
+//   //             ),
+//   //             const SizedBox(width: 9),
+//   //             Expanded(
+//   //               child: Column(
+//   //                 crossAxisAlignment: CrossAxisAlignment.start,
+//   //                 children: [
+//   //                   Text(
+//   //                     _fileNameFromUrl(fileUrl),
+//   //                     maxLines: 1,
+//   //                     overflow: TextOverflow.ellipsis,
+//   //                     style: const TextStyle(
+//   //                       fontSize: 11,
+//   //                       fontWeight: FontWeight.w500,
+//   //                     ),
+//   //                   ),
+//   //                   const SizedBox(height: 2),
+//   //                   const Text(
+//   //                     'Already uploaded',
+//   //                     style: TextStyle(fontSize: 9, color: Colors.grey),
+//   //                   ),
+//   //                 ],
+//   //               ),
+//   //             ),
+//   //             IconButton(
+//   //               onPressed: isSaving
+//   //                   ? null
+//   //                   : () => _removeExistingAttachment(index),
+//   //               visualDensity: VisualDensity.compact,
+//   //               icon: const Icon(Icons.close, color: Colors.red, size: 18),
+//   //             ),
+//   //           ],
+//   //         ),
+//   //       );
+//   //     },
+//   //   );
+//   // }
+
+//   // Widget _buildSelectedFileList(bool isSaving) {
+//   //   return ListView.separated(
+//   //     itemCount: _selectedFiles.length,
+//   //     shrinkWrap: true,
+//   //     physics: const NeverScrollableScrollPhysics(),
+//   //     separatorBuilder: (_, __) {
+//   //       return const SizedBox(height: 7);
+//   //     },
+//   //     itemBuilder: (context, index) {
+//   //       final SelectedDiaryFile file = _selectedFiles[index];
+
+//   //       return Container(
+//   //         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+//   //         decoration: BoxDecoration(
+//   //           color: fieldColor,
+//   //           borderRadius: BorderRadius.circular(7),
+//   //           border: Border.all(color: borderColor.withOpacity(0.6)),
+//   //         ),
+//   //         child: Row(
+//   //           children: [
+//   //             Icon(_getFileIcon(file.extension), size: 22, color: primaryColor),
+//   //             const SizedBox(width: 9),
+//   //             Expanded(
+//   //               child: Column(
+//   //                 crossAxisAlignment: CrossAxisAlignment.start,
+//   //                 children: [
+//   //                   Text(
+//   //                     file.name,
+//   //                     maxLines: 1,
+//   //                     overflow: TextOverflow.ellipsis,
+//   //                     style: const TextStyle(
+//   //                       fontSize: 11,
+//   //                       fontWeight: FontWeight.w500,
+//   //                     ),
+//   //                   ),
+//   //                   const SizedBox(height: 2),
+//   //                   Text(
+//   //                     _formatFileSize(file.size),
+//   //                     style: const TextStyle(fontSize: 9, color: Colors.grey),
+//   //                   ),
+//   //                 ],
+//   //               ),
+//   //             ),
+//   //             IconButton(
+//   //               onPressed: isSaving ? null : () => _removeAttachment(index),
+//   //               visualDensity: VisualDensity.compact,
+//   //               icon: const Icon(Icons.close, color: Colors.red, size: 18),
+//   //             ),
+//   //           ],
+//   //         ),
+//   //       );
+//   //     },
+//   //   );
+//   // }
 
 //   Widget _voiceWidget(bool isSaving) {
 //     switch (voiceState) {
@@ -1482,6 +1680,7 @@ import 'dart:ui';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:cristalteacher/core/appdata/appdata.dart';
+import 'package:cristalteacher/core/utils/text_stylepicker.dart.dart';
 import 'package:cristalteacher/features/diary/domain/parameters/save_diary_parameter.dart';
 import 'package:cristalteacher/features/diary/domain/parameters/update_diary_parameter.dart';
 import 'package:cristalteacher/features/diary/presentation/cubit/diary_cubit.dart';
@@ -1490,8 +1689,10 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 enum VoiceState { idle, recording, recorded }
 
@@ -1595,6 +1796,10 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
   /// True while fetchDiaryUpdateListing is in flight.
   bool _isLoadingDiary = false;
 
+  // Size + colour per field, driven by the shared picker.
+  EditorTextStyle _titleStyle = EditorTextStyle.initial;
+  EditorTextStyle _descriptionStyle = EditorTextStyle.initial;
+
   VoiceState voiceState = VoiceState.idle;
 
   Timer? _recordingTimer;
@@ -1619,10 +1824,22 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
     'mp3',
   ];
 
+  /// Extensions shown as a picture instead of an icon.
+  static const List<String> _imageExtensions = ['jpg', 'jpeg', 'png'];
+
   final Color bgColor = const Color(0xffFBF7FF);
   final Color fieldColor = const Color(0xffEEF4FF);
   final Color primaryColor = const Color(0xff9B73E6);
   final Color borderColor = const Color(0xffB7C4D6);
+
+  /// Palette handed to the shared input field / picker.
+  EditorStyleTheme get _styleTheme {
+    return EditorStyleTheme(
+      accentColor: primaryColor,
+      fillColor: fieldColor,
+      borderColor: borderColor,
+    );
+  }
 
   bool get isEditMode => widget.diaryId != null;
 
@@ -1633,8 +1850,13 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
     _configureAudioPlayer();
 
     // Immediate prefill from whatever the previous screen already had.
-    _titleController.text = _removeHtml(widget.initialTitle);
-    _descriptionController.text = _removeHtml(widget.initialDescription);
+    _titleController.text = EditorTextStyle.stripHtml(widget.initialTitle);
+    _descriptionController.text = EditorTextStyle.stripHtml(
+      widget.initialDescription,
+    );
+
+    _titleStyle = EditorTextStyle.fromHtml(widget.initialTitle);
+    _descriptionStyle = EditorTextStyle.fromHtml(widget.initialDescription);
 
     _existingFiles.addAll(
       widget.existingFiles.where((file) => file.trim().isNotEmpty),
@@ -1676,8 +1898,11 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
 
   /// Puts the fetched diary onto the form.
   void _applyDiaryDetails(dynamic data) {
-    final String title = _removeHtml(data.diaryTitle);
-    final String description = _removeHtml(data.description);
+    final String rawTitle = data.diaryTitle?.toString() ?? '';
+    final String rawDescription = data.description?.toString() ?? '';
+
+    final String title = EditorTextStyle.stripHtml(rawTitle);
+    final String description = EditorTextStyle.stripHtml(rawDescription);
 
     final List<String> files = List<String>.from(
       data.files ?? const [],
@@ -1686,6 +1911,10 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
     setState(() {
       _titleController.text = title;
       _descriptionController.text = description;
+
+      // Restore the size / colour the diary was saved with.
+      _titleStyle = EditorTextStyle.fromHtml(rawTitle);
+      _descriptionStyle = EditorTextStyle.fromHtml(rawDescription);
 
       _existingFiles
         ..clear()
@@ -1696,6 +1925,8 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
     debugPrint('EDIT CONTENT APPLIED');
     debugPrint('Title      : $title');
     debugPrint('Description: $description');
+    debugPrint('Title style: $_titleStyle');
+    debugPrint('Desc style : $_descriptionStyle');
     debugPrint('Files      : ${files.length}');
     debugPrint('==========================================');
   }
@@ -1748,26 +1979,6 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
     super.dispose();
   }
 
-  /// The API stores title and description as HTML.
-  String _removeHtml(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return '';
-    }
-
-    return value
-        .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
-        .replaceAll(RegExp(r'</p>', caseSensitive: false), '\n')
-        .replaceAll(RegExp(r'<[^>]*>'), '')
-        .replaceAll('&nbsp;', ' ')
-        .replaceAll('&amp;', '&')
-        .replaceAll('&lt;', '<')
-        .replaceAll('&gt;', '>')
-        .replaceAll('&quot;', '"')
-        .replaceAll('&#39;', "'")
-        .replaceAll(RegExp(r'\n\s*\n'), '\n')
-        .trim();
-  }
-
   String formatApiDate(DateTime date) {
     final String year = date.year.toString();
     final String month = date.month.toString().padLeft(2, '0');
@@ -1782,18 +1993,6 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
 
     return '${minutes.toString().padLeft(2, '0')}:'
         '${seconds.toString().padLeft(2, '0')}';
-  }
-
-  String _formatFileSize(int bytes) {
-    if (bytes < 1024) {
-      return '$bytes B';
-    }
-
-    if (bytes < 1024 * 1024) {
-      return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    }
-
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
   IconData _getFileIcon(String extension) {
@@ -1815,6 +2014,10 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
       default:
         return Icons.insert_drive_file_outlined;
     }
+  }
+
+  bool _isImage(String extension) {
+    return _imageExtensions.contains(extension.toLowerCase());
   }
 
   String _fileNameFromUrl(String url) {
@@ -2171,6 +2374,8 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
     debugPrint('Subject ID    : ${widget.subjectId}');
     debugPrint('Title         : $title');
     debugPrint('Description   : $description');
+    debugPrint('Title style   : $_titleStyle');
+    debugPrint('Desc style    : $_descriptionStyle');
     debugPrint('Voice State   : $voiceState');
     debugPrint('Kept files    : ${_existingFiles.length}');
     debugPrint('New files     : ${_selectedFiles.length}');
@@ -2200,6 +2405,10 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
       return;
     }
 
+    // Size / colour travel with the text as inline HTML.
+    final String styledTitle = _titleStyle.wrapHtml(title);
+    final String styledDescription = _descriptionStyle.wrapHtml(description);
+
     try {
       final List<String> apiFiles = await _buildApiFiles();
 
@@ -2216,8 +2425,8 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
           subjectId: widget.subjectId,
           employeeId: AppData.employeeId!,
           diaryType: null,
-          diaryTitle: title,
-          description: description,
+          diaryTitle: styledTitle,
+          description: styledDescription,
           diaryDate: formatApiDate(widget.diaryDate),
           dueDate: formatApiDate(widget.dueDate),
           isActive: true,
@@ -2247,8 +2456,8 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
         subjectId: widget.subjectId,
         employeeId: AppData.employeeId!,
         diaryType: null,
-        diaryTitle: title,
-        description: description,
+        diaryTitle: styledTitle,
+        description: styledDescription,
         diaryDate: formatApiDate(widget.diaryDate),
         dueDate: formatApiDate(widget.dueDate),
         isActive: true,
@@ -2336,32 +2545,6 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
       (route) => route.isFirst,
     );
   }
-  // /// Shared cleanup + navigation for both create and update success.
-  // Future<void> _onDiarySubmitted(String apiMessage) async {
-  //   _showMessage(
-  //     apiMessage.trim().isNotEmpty
-  //         ? apiMessage
-  //         : isEditMode
-  //         ? 'Diary updated successfully'
-  //         : 'Diary saved successfully',
-  //   );
-
-  //   _titleController.clear();
-  //   _descriptionController.clear();
-  //   _selectedFiles.clear();
-  //   _existingFiles.clear();
-
-  //   await _deleteRecording();
-
-  //   if (!mounted) return;
-
-  //   Navigator.of(context).pushAndRemoveUntil(
-  //     MaterialPageRoute(builder: (_) => const DiaryTypeScreen()),
-
-  //     // Keeps the dashboard and removes the diary creation screens.
-  //     (route) => route.isFirst,
-  //   );
-  // }
 
   void _showMessage(String message) {
     if (!mounted) return;
@@ -2460,34 +2643,39 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
                                   ScrollViewKeyboardDismissBehavior.onDrag,
                               child: Column(
                                 children: [
-                                  _inputBox(
+                                  StyledInputField(
                                     controller: _titleController,
                                     hint: 'Heading Or Title',
-                                    height: 44,
+                                    minHeight: 44,
                                     enabled: !isSaving,
+                                    style: _titleStyle,
+                                    theme: _styleTheme,
+                                    onStyleChanged: (style) {
+                                      setState(() {
+                                        _titleStyle = style;
+                                      });
+                                    },
                                   ),
                                   const SizedBox(height: 14),
-                                  _inputBox(
+                                  StyledInputField(
                                     controller: _descriptionController,
                                     hint: 'Description',
-                                    height: 118,
+                                    minHeight: 118,
                                     maxLines: 5,
                                     enabled: !isSaving,
+                                    style: _descriptionStyle,
+                                    theme: _styleTheme,
+                                    onStyleChanged: (style) {
+                                      setState(() {
+                                        _descriptionStyle = style;
+                                      });
+                                    },
                                   ),
                                   const SizedBox(height: 14),
+
+                                  // Picked images and files preview inside
+                                  // the box itself.
                                   _attachmentBox(isSaving),
-
-                                  // Attachments already on the server.
-                                  if (_existingFiles.isNotEmpty) ...[
-                                    const SizedBox(height: 10),
-                                    _buildExistingFileList(isSaving),
-                                  ],
-
-                                  // Attachments picked in this session.
-                                  if (_selectedFiles.isNotEmpty) ...[
-                                    const SizedBox(height: 10),
-                                    _buildSelectedFileList(isSaving),
-                                  ],
 
                                   const SizedBox(height: 10),
                                   const Row(
@@ -2593,217 +2781,327 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
     );
   }
 
-  Widget _inputBox({
-    required TextEditingController controller,
-    required String hint,
-    required double height,
-    required bool enabled,
-    int maxLines = 1,
-  }) {
-    return Container(
-      height: height,
-      decoration: BoxDecoration(
-        color: fieldColor,
-        borderRadius: BorderRadius.circular(7),
-        border: Border.all(color: borderColor),
-      ),
-      child: TextField(
-        controller: controller,
-        enabled: enabled,
-        maxLines: maxLines,
-        textInputAction: maxLines == 1
-            ? TextInputAction.next
-            : TextInputAction.newline,
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(fontSize: 12, color: Colors.black),
-          suffixIcon: Padding(
-            padding: const EdgeInsets.all(10),
-            child: SvgPicture.asset(
-              'assets/icons/Group (8).svg',
-              width: 25,
-              height: 25,
-            ),
-          ),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 12,
-          ),
-        ),
-      ),
-    );
-  }
-
+  /// Empty: the upload prompt. With attachments: a row of thumbnails inside
+  /// the same dashed box, images shown as pictures.
   Widget _attachmentBox(bool isSaving) {
-    final int totalFiles = _existingFiles.length + _selectedFiles.length;
+    final bool hasFiles =
+        _existingFiles.isNotEmpty || _selectedFiles.isNotEmpty;
 
-    return GestureDetector(
-      onTap: isSaving || _isPickingFiles ? null : _pickAttachments,
-      child: CustomPaint(
-        painter: DashedBorderPainter(),
-        child: Container(
-          width: double.infinity,
-          height: 105,
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (_isPickingFiles)
-                SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: primaryColor,
-                  ),
-                )
-              else
-                SvgPicture.asset(
-                  'assets/icons/Group (9).svg',
-                  width: 24,
-                  height: 24,
-                  fit: BoxFit.contain,
-                ),
-              const SizedBox(height: 6),
-              Text(
-                _isPickingFiles ? 'Selecting...' : 'Attachment',
-                style: const TextStyle(fontSize: 12, color: Colors.black),
-              ),
-              if (totalFiles > 0) ...[
-                const SizedBox(height: 4),
-                Text(
-                  '$totalFiles file${totalFiles == 1 ? '' : 's'} attached',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: primaryColor,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
+    return CustomPaint(
+      painter: DashedBorderPainter(),
+      child: SizedBox(
+        width: double.infinity,
+        height: 105,
+        child: hasFiles
+            ? _buildAttachmentPreviews(isSaving)
+            : _buildEmptyAttachment(isSaving),
       ),
     );
   }
 
-  Widget _buildExistingFileList(bool isSaving) {
-    return ListView.separated(
-      itemCount: _existingFiles.length,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      separatorBuilder: (_, __) {
-        return const SizedBox(height: 7);
-      },
-      itemBuilder: (context, index) {
-        final String fileUrl = _existingFiles[index];
-
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            color: fieldColor,
-            borderRadius: BorderRadius.circular(7),
-            border: Border.all(color: borderColor.withOpacity(0.6)),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                _getFileIcon(_extensionFromUrl(fileUrl)),
-                size: 22,
+  Widget _buildEmptyAttachment(bool isSaving) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: isSaving || _isPickingFiles ? null : _pickAttachments,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (_isPickingFiles)
+            SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
                 color: primaryColor,
               ),
-              const SizedBox(width: 9),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _fileNameFromUrl(fileUrl),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      'Already uploaded',
-                      style: TextStyle(fontSize: 9, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                onPressed: isSaving
-                    ? null
-                    : () => _removeExistingAttachment(index),
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.close, color: Colors.red, size: 18),
-              ),
-            ],
+            )
+          else
+            SvgPicture.asset(
+              'assets/icons/Group (9).svg',
+              width: 24,
+              height: 24,
+              fit: BoxFit.contain,
+            ),
+          const SizedBox(height: 6),
+          Text(
+            _isPickingFiles ? 'Selecting...' : 'Attachment',
+            style: const TextStyle(fontSize: 12, color: Colors.black),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
-  Widget _buildSelectedFileList(bool isSaving) {
-    return ListView.separated(
-      itemCount: _selectedFiles.length,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      separatorBuilder: (_, __) {
-        return const SizedBox(height: 7);
-      },
-      itemBuilder: (context, index) {
-        final SelectedDiaryFile file = _selectedFiles[index];
-
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            color: fieldColor,
-            borderRadius: BorderRadius.circular(7),
-            border: Border.all(color: borderColor.withOpacity(0.6)),
+  Widget _buildAttachmentPreviews(bool isSaving) {
+    return ListView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      children: [
+        // Already on the server.
+        for (int index = 0; index < _existingFiles.length; index++)
+          _attachmentTile(
+            preview: _existingFilePreview(_existingFiles[index]),
+            onTap: _isImage(_extensionFromUrl(_existingFiles[index]))
+                ? () => _openImageViewer(
+                    NetworkImage(_existingFiles[index]),
+                    _fileNameFromUrl(_existingFiles[index]),
+                  )
+                : () => _openExistingDocument(_existingFiles[index]),
+            onRemove: isSaving ? null : () => _removeExistingAttachment(index),
           ),
-          child: Row(
-            children: [
-              Icon(_getFileIcon(file.extension), size: 22, color: primaryColor),
-              const SizedBox(width: 9),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      file.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
+
+        // Picked in this session.
+        for (int index = 0; index < _selectedFiles.length; index++)
+          _attachmentTile(
+            preview: _selectedFilePreview(_selectedFiles[index]),
+            onTap: _isImage(_selectedFiles[index].extension)
+                ? () => _openImageViewer(
+                    MemoryImage(_selectedFiles[index].bytes),
+                    _selectedFiles[index].name,
+                  )
+                : () => _openSelectedDocument(_selectedFiles[index]),
+            onRemove: isSaving ? null : () => _removeAttachment(index),
+          ),
+
+        _addMoreTile(isSaving),
+      ],
+    );
+  }
+
+  /// Shows the tapped attachment on its own screen.
+  void _openImageViewer(ImageProvider image, String title) {
+    Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        pageBuilder: (_, __, ___) {
+          return FullScreenImageViewer(image: image, title: title);
+        },
+        transitionsBuilder: (_, animation, __, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 180),
+      ),
+    );
+  }
+
+  /// A PDF or document already on the server. It has a real URL, so the
+  /// device opens it directly.
+  Future<void> _openExistingDocument(String fileUrl) async {
+    final Uri? uri = Uri.tryParse(fileUrl.trim());
+
+    if (uri == null || !uri.hasScheme) {
+      _showMessage('This attachment cannot be opened');
+      return;
+    }
+
+    try {
+      final bool opened = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!opened) {
+        _showMessage('No app available to open this file');
+      }
+    } catch (error, stackTrace) {
+      debugPrint('Open attachment error: $error');
+      debugPrintStack(stackTrace: stackTrace);
+
+      _showMessage('Unable to open this attachment');
+    }
+  }
+
+  /// A PDF or document picked in this session. It only exists as bytes in
+  /// memory, so it is written to the temp folder before being handed to
+  /// whichever app the device uses for that type.
+  Future<void> _openSelectedDocument(SelectedDiaryFile file) async {
+    try {
+      final Directory temporaryDirectory = await getTemporaryDirectory();
+
+      final Directory attachmentDirectory = Directory(
+        '${temporaryDirectory.path}/diary_attachments',
+      );
+
+      if (!await attachmentDirectory.exists()) {
+        await attachmentDirectory.create(recursive: true);
+      }
+
+      final File target = File('${attachmentDirectory.path}/${file.name}');
+
+      await target.writeAsBytes(file.bytes, flush: true);
+
+      final OpenResult result = await OpenFilex.open(
+        target.path,
+        type: file.mimeType,
+      );
+
+      if (result.type != ResultType.done) {
+        _showMessage('No app available to open ${file.name}');
+      }
+    } catch (error, stackTrace) {
+      debugPrint('Open picked attachment error: $error');
+      debugPrintStack(stackTrace: stackTrace);
+
+      _showMessage('Unable to open ${file.name}');
+    }
+  }
+
+  /// Server attachment: the picture itself for images, an icon otherwise.
+  Widget _existingFilePreview(String fileUrl) {
+    final String extension = _extensionFromUrl(fileUrl);
+
+    if (_isImage(extension)) {
+      return Image.network(
+        fileUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _fileIconPreview(extension),
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+
+          return Center(
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: primaryColor,
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    return _fileIconPreview(extension);
+  }
+
+  /// Newly picked attachment: drawn straight from the bytes already in
+  /// memory, so no temp file is needed.
+  Widget _selectedFilePreview(SelectedDiaryFile file) {
+    if (_isImage(file.extension)) {
+      return Image.memory(
+        file.bytes,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _fileIconPreview(file.extension),
+      );
+    }
+
+    return _fileIconPreview(file.extension, label: file.extension);
+  }
+
+  Widget _fileIconPreview(String extension, {String? label}) {
+    return Container(
+      color: fieldColor,
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(_getFileIcon(extension), size: 26, color: primaryColor),
+          if ((label ?? extension).isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              (label ?? extension).toUpperCase(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
+                color: Color(0xff5C5C5C),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _attachmentTile({
+    required Widget preview,
+    required VoidCallback? onRemove,
+    VoidCallback? onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 9),
+      child: SizedBox(
+        width: 74,
+        child: Stack(
+          children: [
+            // Tapping opens the attachment: pictures full screen, PDFs
+            // and documents in the device's own viewer. It never reopens
+            // the file picker; that is the Add tile's job.
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onTap,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(7),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: fieldColor,
+                      border: Border.all(color: borderColor.withOpacity(0.6)),
+                      borderRadius: BorderRadius.circular(7),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _formatFileSize(file.size),
-                      style: const TextStyle(fontSize: 9, color: Colors.grey),
-                    ),
-                  ],
+                    child: preview,
+                  ),
                 ),
               ),
-              IconButton(
-                onPressed: isSaving ? null : () => _removeAttachment(index),
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.close, color: Colors.red, size: 18),
+            ),
+            Positioned(
+              top: 2,
+              right: 2,
+              child: GestureDetector(
+                onTap: onRemove,
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.55),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.close, size: 13, color: Colors.white),
+                ),
               ),
-            ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _addMoreTile(bool isSaving) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: isSaving || _isPickingFiles ? null : _pickAttachments,
+      child: SizedBox(
+        width: 74,
+        child: DottedTileBorder(
+          color: borderColor,
+          child: Center(
+            child: _isPickingFiles
+                ? SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: primaryColor,
+                    ),
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add, size: 22, color: primaryColor),
+                      const SizedBox(height: 3),
+                      const Text(
+                        'Add',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Color(0xff5C5C5C),
+                        ),
+                      ),
+                    ],
+                  ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -2950,6 +3248,163 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
           ),
         );
     }
+  }
+}
+
+/// Dashed outline for the small "Add" tile.
+/// Full screen look at one attachment picture. Pinch or double tap to
+/// zoom, tap the backdrop or the close button to come back.
+class FullScreenImageViewer extends StatelessWidget {
+  final ImageProvider image;
+  final String title;
+
+  const FullScreenImageViewer({
+    super.key,
+    required this.image,
+    this.title = '',
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  Navigator.of(context).maybePop();
+                },
+                child: InteractiveViewer(
+                  minScale: 1,
+                  maxScale: 4,
+                  child: Center(
+                    child: Image(
+                      image: image,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) {
+                        return const Icon(
+                          Icons.broken_image_outlined,
+                          color: Colors.white54,
+                          size: 44,
+                        );
+                      },
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+
+                        return const SizedBox(
+                          width: 26,
+                          height: 26,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 10,
+              left: 12,
+              right: 12,
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).maybePop();
+                    },
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: const BoxDecoration(
+                        color: Colors.white24,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 19,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class DottedTileBorder extends StatelessWidget {
+  final Color color;
+  final Widget child;
+
+  const DottedTileBorder({super.key, required this.color, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _TileDashPainter(color: color),
+      child: child,
+    );
+  }
+}
+
+class _TileDashPainter extends CustomPainter {
+  final Color color;
+
+  const _TileDashPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const double dashWidth = 5;
+    const double dashSpace = 4;
+
+    final Paint paint = Paint()
+      ..color = color
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+
+    final Path path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(0, 0, size.width, size.height),
+          const Radius.circular(7),
+        ),
+      );
+
+    for (final PathMetric metric in path.computeMetrics()) {
+      double distance = 0;
+
+      while (distance < metric.length) {
+        final double end = min(distance + dashWidth, metric.length);
+
+        canvas.drawPath(metric.extractPath(distance, end), paint);
+
+        distance += dashWidth + dashSpace;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _TileDashPainter oldDelegate) {
+    return oldDelegate.color != color;
   }
 }
 

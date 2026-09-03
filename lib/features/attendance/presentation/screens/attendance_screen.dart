@@ -1,5 +1,10 @@
+// import 'package:cristalteacher/core/appdata/appdata.dart';
 // import 'package:cristalteacher/features/attendance/presentation/screens/studentattendance_screen.dart';
+// import 'package:cristalteacher/features/authentication/domain/entities/class_details_entity.dart';
+// import 'package:cristalteacher/features/authentication/domain/parameters/fetch_tutorshipclass_parameter.dart';
+// import 'package:cristalteacher/features/authentication/presentation/cubit/authentication_cubit.dart';
 // import 'package:flutter/material.dart';
+// import 'package:flutter_bloc/flutter_bloc.dart';
 
 // class AttendanceScreen extends StatefulWidget {
 //   const AttendanceScreen({super.key});
@@ -9,19 +14,31 @@
 // }
 
 // class _AttendanceScreenState extends State<AttendanceScreen> {
-//   DateTime selectedDate = DateTime(2026, 12, 17);
-
-//   String selectedStandard = '10';
-//   String selectedDivision = 'A';
-//   String selectedSection = 'Morning';
-
 //   final TextEditingController narrationController = TextEditingController();
 
-//   final List<String> standards = ['8', '9', '10', '11', '12'];
+//   DateTime selectedDate = DateTime.now();
 
-//   final List<String> divisions = ['A', 'B', 'C', 'D'];
+//   List<TutorshipClass> standards = [];
+//   List<DivisionDetails> divisions = [];
 
-//   final List<String> sections = ['Morning', 'Afternoon', 'Evening'];
+//   int? selectedStandardId;
+//   int? selectedDivisionId;
+
+//   String? selectedStandard;
+//   String? selectedDivision;
+
+//   String selectedSection = 'Morning';
+
+//   final List<String> sections = ['Morning', 'Evening'];
+
+//   @override
+//   void initState() {
+//     super.initState();
+
+//     WidgetsBinding.instance.addPostFrameCallback((_) {
+//       _fetchTutorshipClasses();
+//     });
+//   }
 
 //   @override
 //   void dispose() {
@@ -29,8 +46,135 @@
 //     super.dispose();
 //   }
 
-//   String formatDate(DateTime date) {
-//     return '${date.day}/${date.month}/${date.year}';
+//   void _fetchTutorshipClasses() {
+//     final request = FetchTutorshipClassRequest(
+//       accyear: AppData.accYear,
+//       employeeId: AppData.employeeId,
+//       userId: AppData.userId,
+//     );
+
+//     debugPrint('==========================================');
+//     debugPrint('📘 FETCH TUTORSHIP CLASS');
+//     debugPrint('Request: ${request.toJson()}');
+//     debugPrint('==========================================');
+
+//     context.read<AuthenticationCubit>().fetchTutorshipClass(request);
+//   }
+
+//   void _setInitialClassSelection(List<TutorshipClass> classList) {
+//     if (classList.isEmpty) {
+//       return;
+//     }
+
+//     TutorshipClass? firstStandard;
+//     DivisionDetails? firstDivision;
+
+//     for (final standard in classList) {
+//       final List<DivisionDetails> standardDivisions = standard.division ?? [];
+
+//       if (standardDivisions.isNotEmpty) {
+//         firstStandard = standard;
+//         firstDivision = standardDivisions.first;
+//         break;
+//       }
+//     }
+
+//     if (firstStandard == null || firstDivision == null) {
+//       return;
+//     }
+
+//     setState(() {
+//       standards = classList;
+
+//       selectedStandardId = firstStandard!.standardId;
+//       selectedStandard = firstStandard.standard;
+
+//       divisions = firstStandard.division ?? [];
+
+//       selectedDivisionId = firstDivision!.divisionId;
+//       selectedDivision = firstDivision.division;
+//     });
+//   }
+
+//   void _selectStandard(int? standardId) {
+//     if (standardId == null) {
+//       return;
+//     }
+
+//     TutorshipClass? selectedItem;
+
+//     for (final standard in standards) {
+//       if (standard.standardId == standardId) {
+//         selectedItem = standard;
+//         break;
+//       }
+//     }
+
+//     if (selectedItem == null) {
+//       return;
+//     }
+
+//     final List<DivisionDetails> newDivisions = selectedItem.division ?? [];
+
+//     setState(() {
+//       selectedStandardId = selectedItem!.standardId;
+//       selectedStandard = selectedItem.standard;
+
+//       divisions = newDivisions;
+
+//       if (newDivisions.isNotEmpty) {
+//         selectedDivisionId = newDivisions.first.divisionId;
+
+//         selectedDivision = newDivisions.first.division;
+//       } else {
+//         selectedDivisionId = null;
+//         selectedDivision = null;
+//       }
+//     });
+//   }
+
+//   void _selectDivision(int? divisionId) {
+//     if (divisionId == null) {
+//       return;
+//     }
+
+//     DivisionDetails? selectedItem;
+
+//     for (final division in divisions) {
+//       if (division.divisionId == divisionId) {
+//         selectedItem = division;
+//         break;
+//       }
+//     }
+
+//     if (selectedItem == null) {
+//       return;
+//     }
+
+//     setState(() {
+//       selectedDivisionId = selectedItem!.divisionId;
+//       selectedDivision = selectedItem.division;
+//     });
+//   }
+
+//   String formatDisplayDate(DateTime date) {
+//     final String day = date.day.toString().padLeft(2, '0');
+
+//     final String month = date.month.toString().padLeft(2, '0');
+
+//     final String year = date.year.toString();
+
+//     return '$day/$month/$year';
+//   }
+
+//   String formatApiDate(DateTime date) {
+//     final String year = date.year.toString();
+
+//     final String month = date.month.toString().padLeft(2, '0');
+
+//     final String day = date.day.toString().padLeft(2, '0');
+
+//     return '$year-$month-$day';
 //   }
 
 //   Future<void> selectDate() async {
@@ -53,142 +197,201 @@
 //       },
 //     );
 
-//     if (pickedDate != null) {
-//       setState(() {
-//         selectedDate = pickedDate;
-//       });
+//     if (pickedDate == null || !mounted) {
+//       return;
 //     }
+
+//     setState(() {
+//       selectedDate = pickedDate;
+//     });
+//   }
+
+//   void _startAttendance() {
+//     final String? accYear = AppData.accYear;
+
+//     if (accYear == null || accYear.trim().isEmpty) {
+//       _showMessage('Academic year is not available');
+//       return;
+//     }
+
+//     if (selectedStandardId == null) {
+//       _showMessage('Please select a standard');
+//       return;
+//     }
+
+//     if (selectedDivisionId == null) {
+//       _showMessage('Please select a division');
+//       return;
+//     }
+
+//     debugPrint('==========================================');
+//     debugPrint('📘 START ATTENDANCE');
+//     debugPrint('Academic Year: $accYear');
+//     debugPrint(
+//       'Standard: $selectedStandard '
+//       '($selectedStandardId)',
+//     );
+//     debugPrint(
+//       'Division: $selectedDivision '
+//       '($selectedDivisionId)',
+//     );
+//     debugPrint('Section: $selectedSection');
+//     debugPrint('Attendance Date: ${formatApiDate(selectedDate)}');
+//     debugPrint('Narration: ${narrationController.text.trim()}');
+//     debugPrint('==========================================');
+
+//     Navigator.of(context).push(
+//       MaterialPageRoute(
+//         builder: (_) {
+//           return StudentAttendanceScreen(
+//             attendanceDate: selectedDate,
+//             standardId: selectedStandardId ?? 0,
+//             standard: selectedStandard ?? '',
+//             divisionId: selectedDivisionId!,
+//             division: selectedDivision ?? '',
+//             section: selectedSection,
+//             narration: narrationController.text.trim(),
+//           );
+//         },
+//       ),
+//     );
+//   }
+
+//   void _showMessage(String message) {
+//     if (!mounted) {
+//       return;
+//     }
+
+//     ScaffoldMessenger.of(context).showSnackBar(
+//       SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+//     );
 //   }
 
 //   @override
 //   Widget build(BuildContext context) {
-//     return Scaffold(
-//       backgroundColor: Colors.white,
+//     return BlocConsumer<AuthenticationCubit, AuthenticationState>(
+//       listenWhen: (previous, current) {
+//         return current is FetchTutorshipClassSuccess ||
+//             current is FetchTutorshipClassFailure;
+//       },
+//       listener: (context, state) {
+//         if (state is FetchTutorshipClassSuccess) {
+//           final List<TutorshipClass> classList =
+//               state.response.data?.tutorshipClass ?? [];
 
-//       appBar: AppBar(
-//         backgroundColor: Colors.white,
-//         surfaceTintColor: Colors.white,
-//         elevation: 0,
-//         centerTitle: true,
-//         title: const Text(
-//           'Attendance',
-//           style: TextStyle(
-//             fontSize: 20,
-//             fontWeight: FontWeight.w700,
-//             color: Color(0xFF111111),
-//           ),
-//         ),
-//         leading: IconButton(
-//           onPressed: () {
-//             Navigator.maybePop(context);
-//           },
-//           icon: const Icon(
-//             Icons.arrow_back,
-//             size: 27,
-//             color: Color(0xFF222222),
-//           ),
-//         ),
-//       ),
+//           if (classList.isEmpty) {
+//             _showMessage('No standards or divisions found');
+//             return;
+//           }
 
-//       body: SafeArea(
-//         top: false,
-//         child: SingleChildScrollView(
-//           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-//           padding: const EdgeInsets.fromLTRB(24, 24, 24, 36),
-//           child: Column(
+//           _setInitialClassSelection(classList);
+//         }
+
+//         if (state is FetchTutorshipClassFailure) {
+//           _showMessage(state.message);
+//         }
+//       },
+//       builder: (context, state) {
+//         final bool isClassLoading = state is FetchTutorshipClassLoading;
+
+//         return Scaffold(
+//           backgroundColor: Colors.white,
+//           appBar: AppBar(
+//             backgroundColor: Colors.white,
+//             surfaceTintColor: Colors.white,
+//             elevation: 0,
+//             centerTitle: true,
+//             title: const Text(
+//               'Attendance',
+//               style: TextStyle(
+//                 fontSize: 20,
+//                 fontWeight: FontWeight.w700,
+//                 color: Color(0xFF111111),
+//               ),
+//             ),
+//             leading: IconButton(
+//               onPressed: () {
+//                 Navigator.maybePop(context);
+//               },
+//               icon: const Icon(
+//                 Icons.arrow_back,
+//                 size: 27,
+//                 color: Color(0xFF222222),
+//               ),
+//             ),
+//           ),
+//           body: SafeArea(
+//             top: false,
+//             child: _buildContent(isClassLoading: isClassLoading),
+//           ),
+//         );
+//       },
+//     );
+//   }
+
+//   Widget _buildContent({required bool isClassLoading}) {
+//     return SingleChildScrollView(
+//       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+//       padding: const EdgeInsets.fromLTRB(24, 24, 24, 36),
+//       child: Column(
+//         crossAxisAlignment: CrossAxisAlignment.start,
+//         children: [
+//           _buildDateField(),
+
+//           const SizedBox(height: 22),
+
+//           Row(
 //             crossAxisAlignment: CrossAxisAlignment.start,
 //             children: [
-//               _buildDateField(),
-
-//               const SizedBox(height: 22),
-
-//               Row(
-//                 crossAxisAlignment: CrossAxisAlignment.start,
-//                 children: [
-//                   Expanded(
-//                     child: _buildDropdownField(
-//                       label: 'Standard',
-//                       value: selectedStandard,
-//                       items: standards,
-//                       onChanged: (value) {
-//                         if (value == null) return;
-
-//                         setState(() {
-//                           selectedStandard = value;
-//                         });
-//                       },
-//                     ),
-//                   ),
-//                   const SizedBox(width: 16),
-//                   Expanded(
-//                     child: _buildDropdownField(
-//                       label: 'Division',
-//                       value: selectedDivision,
-//                       items: divisions,
-//                       onChanged: (value) {
-//                         if (value == null) return;
-
-//                         setState(() {
-//                           selectedDivision = value;
-//                         });
-//                       },
-//                     ),
-//                   ),
-//                 ],
+//               Expanded(
+//                 child: _buildStandardDropdown(isLoading: isClassLoading),
 //               ),
 
-//               const SizedBox(height: 22),
+//               const SizedBox(width: 16),
 
-//               _buildDropdownField(
-//                 label: 'Section',
-//                 value: selectedSection,
-//                 items: sections,
-//                 onChanged: (value) {
-//                   if (value == null) return;
-
-//                   setState(() {
-//                     selectedSection = value;
-//                   });
-//                 },
-//               ),
-
-//               const SizedBox(height: 28),
-
-//               _buildNarrationField(),
-
-//               const SizedBox(height: 26),
-
-//               SizedBox(
-//                 width: double.infinity,
-//                 height: 62,
-//                 child: ElevatedButton(
-//                   onPressed: () {
-//                     Navigator.of(context).push(
-//                       MaterialPageRoute(
-//                         builder: (context) {
-//                           return StudentAttendanceScreen();
-//                         },
-//                       ),
-//                     );
-//                   },
-//                   style: ElevatedButton.styleFrom(
-//                     backgroundColor: const Color(0xFF9B7ADC),
-//                     foregroundColor: Colors.white,
-//                     elevation: 0,
-//                     shadowColor: Colors.transparent,
-//                     shape: RoundedRectangleBorder(
-//                       borderRadius: BorderRadius.circular(10),
-//                     ),
-//                   ),
-//                   child: const Text(
-//                     'Start Attendance',
-//                     style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-//                   ),
-//                 ),
+//               Expanded(
+//                 child: _buildDivisionDropdown(isLoading: isClassLoading),
 //               ),
 //             ],
 //           ),
-//         ),
+
+//           const SizedBox(height: 22),
+
+//           _buildSectionDropdown(),
+
+//           const SizedBox(height: 28),
+
+//           _buildNarrationField(),
+
+//           const SizedBox(height: 26),
+
+//           SizedBox(
+//             width: double.infinity,
+//             height: 62,
+//             child: ElevatedButton(
+//               onPressed:
+//                   isClassLoading ||
+//                       selectedStandardId == null ||
+//                       selectedDivisionId == null
+//                   ? null
+//                   : _startAttendance,
+//               style: ElevatedButton.styleFrom(
+//                 backgroundColor: const Color(0xFF9B7ADC),
+//                 disabledBackgroundColor: const Color(0xFFD1C7E7),
+//                 foregroundColor: Colors.white,
+//                 elevation: 0,
+//                 shadowColor: Colors.transparent,
+//                 shape: RoundedRectangleBorder(
+//                   borderRadius: BorderRadius.circular(10),
+//                 ),
+//               ),
+//               child: const Text(
+//                 'Start Attendance',
+//                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+//               ),
+//             ),
+//           ),
+//         ],
 //       ),
 //     );
 //   }
@@ -208,6 +411,7 @@
 //             ),
 //           ),
 //         ),
+
 //         Material(
 //           color: Colors.transparent,
 //           child: InkWell(
@@ -225,7 +429,7 @@
 //                 children: [
 //                   Expanded(
 //                     child: Text(
-//                       formatDate(selectedDate),
+//                       formatDisplayDate(selectedDate),
 //                       style: const TextStyle(
 //                         fontSize: 14,
 //                         fontWeight: FontWeight.w400,
@@ -233,6 +437,7 @@
 //                       ),
 //                     ),
 //                   ),
+
 //                   const Icon(
 //                     Icons.calendar_month_rounded,
 //                     size: 22,
@@ -247,11 +452,140 @@
 //     );
 //   }
 
-//   Widget _buildDropdownField({
+//   Widget _buildStandardDropdown({required bool isLoading}) {
+//     return _buildDropdownContainer(
+//       label: 'Standard',
+//       child: isLoading
+//           ? const _DropdownLoading()
+//           : DropdownButtonHideUnderline(
+//               child: DropdownButton<int>(
+//                 value: selectedStandardId,
+//                 isExpanded: true,
+//                 elevation: 4,
+//                 borderRadius: BorderRadius.circular(18),
+//                 dropdownColor: Colors.white,
+//                 hint: const Text(
+//                   'Select',
+//                   style: TextStyle(fontSize: 14, color: Color(0xFF777777)),
+//                 ),
+//                 icon: const Icon(
+//                   Icons.keyboard_arrow_down_rounded,
+//                   size: 25,
+//                   color: Color(0xFF74777D),
+//                 ),
+//                 style: const TextStyle(
+//                   fontSize: 14,
+//                   fontWeight: FontWeight.w400,
+//                   color: Color(0xFF252525),
+//                 ),
+//                 items: standards.map((standard) {
+//                   return DropdownMenuItem<int>(
+//                     value: standard.standardId,
+//                     child: Text(
+//                       standard.standard ?? '',
+//                       style: const TextStyle(
+//                         fontSize: 14,
+//                         color: Color(0xFF252525),
+//                       ),
+//                     ),
+//                   );
+//                 }).toList(),
+//                 onChanged: standards.isEmpty ? null : _selectStandard,
+//               ),
+//             ),
+//     );
+//   }
+
+//   Widget _buildDivisionDropdown({required bool isLoading}) {
+//     return _buildDropdownContainer(
+//       label: 'Division',
+//       child: isLoading
+//           ? const _DropdownLoading()
+//           : DropdownButtonHideUnderline(
+//               child: DropdownButton<int>(
+//                 value: selectedDivisionId,
+//                 isExpanded: true,
+//                 elevation: 4,
+//                 borderRadius: BorderRadius.circular(18),
+//                 dropdownColor: Colors.white,
+//                 hint: const Text(
+//                   'Select',
+//                   style: TextStyle(fontSize: 14, color: Color(0xFF777777)),
+//                 ),
+//                 icon: const Icon(
+//                   Icons.keyboard_arrow_down_rounded,
+//                   size: 25,
+//                   color: Color(0xFF74777D),
+//                 ),
+//                 style: const TextStyle(
+//                   fontSize: 14,
+//                   fontWeight: FontWeight.w400,
+//                   color: Color(0xFF252525),
+//                 ),
+//                 items: divisions.map((division) {
+//                   return DropdownMenuItem<int>(
+//                     value: division.divisionId,
+//                     child: Text(
+//                       division.division ?? '',
+//                       style: const TextStyle(
+//                         fontSize: 14,
+//                         color: Color(0xFF252525),
+//                       ),
+//                     ),
+//                   );
+//                 }).toList(),
+//                 onChanged: divisions.isEmpty ? null : _selectDivision,
+//               ),
+//             ),
+//     );
+//   }
+
+//   Widget _buildSectionDropdown() {
+//     return _buildDropdownContainer(
+//       label: 'Section',
+//       child: DropdownButtonHideUnderline(
+//         child: DropdownButton<String>(
+//           value: selectedSection,
+//           isExpanded: true,
+//           elevation: 4,
+//           borderRadius: BorderRadius.circular(18),
+//           dropdownColor: Colors.white,
+//           icon: const Icon(
+//             Icons.keyboard_arrow_down_rounded,
+//             size: 25,
+//             color: Color(0xFF74777D),
+//           ),
+//           style: const TextStyle(
+//             fontSize: 14,
+//             fontWeight: FontWeight.w400,
+//             color: Color(0xFF252525),
+//           ),
+//           items: sections.map((section) {
+//             return DropdownMenuItem<String>(
+//               value: section,
+//               child: Text(
+//                 section,
+//                 style: const TextStyle(fontSize: 14, color: Color(0xFF252525)),
+//               ),
+//             );
+//           }).toList(),
+//           onChanged: (value) {
+//             if (value == null) {
+//               return;
+//             }
+
+//             setState(() {
+//               selectedSection = value;
+//             });
+//           },
+//         ),
+//       ),
+//     );
+//   }
+
+//   Widget _buildDropdownContainer({
 //     required String label,
-//     required String value,
-//     required List<String> items,
-//     required ValueChanged<String?> onChanged,
+//     required Widget child,
 //   }) {
 //     return Column(
 //       crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,46 +601,16 @@
 //             ),
 //           ),
 //         ),
+
 //         Container(
 //           width: double.infinity,
 //           height: 68,
 //           padding: const EdgeInsets.symmetric(horizontal: 20),
 //           decoration: BoxDecoration(
-//             color: const Color.fromARGB(255, 243, 243, 245),
+//             color: const Color(0xFFF3F3F5),
 //             borderRadius: BorderRadius.circular(25),
 //           ),
-//           child: DropdownButtonHideUnderline(
-//             child: DropdownButton<String>(
-//               value: value,
-//               isExpanded: true,
-//               elevation: 4,
-//               borderRadius: BorderRadius.circular(18),
-//               dropdownColor: Colors.white,
-//               icon: const Icon(
-//                 Icons.keyboard_arrow_down_rounded,
-//                 size: 25,
-//                 color: Color(0xFF74777D),
-//               ),
-//               style: const TextStyle(
-//                 fontSize: 14,
-//                 fontWeight: FontWeight.w400,
-//                 color: Color(0xFF252525),
-//               ),
-//               items: items.map((item) {
-//                 return DropdownMenuItem<String>(
-//                   value: item,
-//                   child: Text(
-//                     item,
-//                     style: const TextStyle(
-//                       fontSize: 14,
-//                       color: Color(0xFF252525),
-//                     ),
-//                   ),
-//                 );
-//               }).toList(),
-//               onChanged: onChanged,
-//             ),
-//           ),
+//           child: child,
 //         ),
 //       ],
 //     );
@@ -318,7 +622,7 @@
 //       height: 155,
 //       padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
 //       decoration: BoxDecoration(
-//         color: const Color.fromARGB(255, 243, 243, 245),
+//         color: const Color(0xFFF3F3F5),
 //         borderRadius: BorderRadius.circular(25),
 //       ),
 //       child: TextField(
@@ -347,13 +651,36 @@
 //     );
 //   }
 // }
+
+// class _DropdownLoading extends StatelessWidget {
+//   const _DropdownLoading();
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return const Row(
+//       children: [
+//         SizedBox(
+//           width: 18,
+//           height: 18,
+//           child: CircularProgressIndicator(
+//             strokeWidth: 2,
+//             color: Color(0xFF9B7ADC),
+//           ),
+//         ),
+//         SizedBox(width: 10),
+//         Text(
+//           'Loading...',
+//           style: TextStyle(fontSize: 13, color: Color(0xFF777777)),
+//         ),
+//       ],
+//     );
+//   }
+// }
 import 'package:cristalteacher/core/appdata/appdata.dart';
+import 'package:cristalteacher/core/utils/custom_dropdown_field.dart';
 import 'package:cristalteacher/features/attendance/presentation/screens/studentattendance_screen.dart';
 import 'package:cristalteacher/features/authentication/domain/entities/class_details_entity.dart';
-import 'package:cristalteacher/features/authentication/domain/parameters/fetch_tutorshipclass_parameter.dart';
-import 'package:cristalteacher/features/authentication/presentation/cubit/authentication_cubit.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({super.key});
@@ -384,65 +711,38 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   void initState() {
     super.initState();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchTutorshipClasses();
-    });
+    standards = List<TutorshipClass>.from(AppData.standards);
+
+    if (standards.isNotEmpty) {
+      TutorshipClass? firstStandard;
+      DivisionDetails? firstDivision;
+
+      for (final standard in standards) {
+        final List<DivisionDetails> standardDivisions = standard.division ?? [];
+
+        if (standardDivisions.isNotEmpty) {
+          firstStandard = standard;
+          firstDivision = standardDivisions.first;
+          break;
+        }
+      }
+
+      if (firstStandard != null && firstDivision != null) {
+        selectedStandardId = firstStandard.standardId;
+        selectedStandard = firstStandard.standard;
+
+        divisions = List<DivisionDetails>.from(firstStandard.division ?? []);
+
+        selectedDivisionId = firstDivision.divisionId;
+        selectedDivision = firstDivision.division;
+      }
+    }
   }
 
   @override
   void dispose() {
     narrationController.dispose();
     super.dispose();
-  }
-
-  void _fetchTutorshipClasses() {
-    final request = FetchTutorshipClassRequest(
-      accyear: AppData.accYear,
-      employeeId: AppData.employeeId,
-      userId: AppData.userId,
-    );
-
-    debugPrint('==========================================');
-    debugPrint('📘 FETCH TUTORSHIP CLASS');
-    debugPrint('Request: ${request.toJson()}');
-    debugPrint('==========================================');
-
-    context.read<AuthenticationCubit>().fetchTutorshipClass(request);
-  }
-
-  void _setInitialClassSelection(List<TutorshipClass> classList) {
-    if (classList.isEmpty) {
-      return;
-    }
-
-    TutorshipClass? firstStandard;
-    DivisionDetails? firstDivision;
-
-    for (final standard in classList) {
-      final List<DivisionDetails> standardDivisions = standard.division ?? [];
-
-      if (standardDivisions.isNotEmpty) {
-        firstStandard = standard;
-        firstDivision = standardDivisions.first;
-        break;
-      }
-    }
-
-    if (firstStandard == null || firstDivision == null) {
-      return;
-    }
-
-    setState(() {
-      standards = classList;
-
-      selectedStandardId = firstStandard!.standardId;
-      selectedStandard = firstStandard.standard;
-
-      divisions = firstStandard.division ?? [];
-
-      selectedDivisionId = firstDivision!.divisionId;
-      selectedDivision = firstDivision.division;
-    });
   }
 
   void _selectStandard(int? standardId) {
@@ -473,7 +773,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
       if (newDivisions.isNotEmpty) {
         selectedDivisionId = newDivisions.first.divisionId;
-
         selectedDivision = newDivisions.first.division;
       } else {
         selectedDivisionId = null;
@@ -508,9 +807,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   String formatDisplayDate(DateTime date) {
     final String day = date.day.toString().padLeft(2, '0');
-
     final String month = date.month.toString().padLeft(2, '0');
-
     final String year = date.year.toString();
 
     return '$day/$month/$year';
@@ -518,9 +815,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   String formatApiDate(DateTime date) {
     final String year = date.year.toString();
-
     final String month = date.month.toString().padLeft(2, '0');
-
     final String day = date.day.toString().padLeft(2, '0');
 
     return '$year-$month-$day';
@@ -618,67 +913,37 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<AuthenticationCubit, AuthenticationState>(
-      listenWhen: (previous, current) {
-        return current is FetchTutorshipClassSuccess ||
-            current is FetchTutorshipClassFailure;
-      },
-      listener: (context, state) {
-        if (state is FetchTutorshipClassSuccess) {
-          final List<TutorshipClass> classList =
-              state.response.data?.tutorshipClass ?? [];
-
-          if (classList.isEmpty) {
-            _showMessage('No standards or divisions found');
-            return;
-          }
-
-          _setInitialClassSelection(classList);
-        }
-
-        if (state is FetchTutorshipClassFailure) {
-          _showMessage(state.message);
-        }
-      },
-      builder: (context, state) {
-        final bool isClassLoading = state is FetchTutorshipClassLoading;
-
-        return Scaffold(
-          backgroundColor: Colors.white,
-          appBar: AppBar(
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.white,
-            elevation: 0,
-            centerTitle: true,
-            title: const Text(
-              'Attendance',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF111111),
-              ),
-            ),
-            leading: IconButton(
-              onPressed: () {
-                Navigator.maybePop(context);
-              },
-              icon: const Icon(
-                Icons.arrow_back,
-                size: 27,
-                color: Color(0xFF222222),
-              ),
-            ),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'Attendance',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF111111),
           ),
-          body: SafeArea(
-            top: false,
-            child: _buildContent(isClassLoading: isClassLoading),
+        ),
+        leading: IconButton(
+          onPressed: () {
+            Navigator.maybePop(context);
+          },
+          icon: const Icon(
+            Icons.arrow_back,
+            size: 27,
+            color: Color(0xFF222222),
           ),
-        );
-      },
+        ),
+      ),
+      body: SafeArea(top: false, child: _buildContent()),
     );
   }
 
-  Widget _buildContent({required bool isClassLoading}) {
+  Widget _buildContent() {
     return SingleChildScrollView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 36),
@@ -686,42 +951,26 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildDateField(),
-
           const SizedBox(height: 22),
-
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: _buildStandardDropdown(isLoading: isClassLoading),
-              ),
-
+              Expanded(child: _buildStandardDropdown()),
               const SizedBox(width: 16),
-
-              Expanded(
-                child: _buildDivisionDropdown(isLoading: isClassLoading),
-              ),
+              Expanded(child: _buildDivisionDropdown()),
             ],
           ),
-
           const SizedBox(height: 22),
-
           _buildSectionDropdown(),
-
           const SizedBox(height: 28),
-
           _buildNarrationField(),
-
           const SizedBox(height: 26),
-
           SizedBox(
             width: double.infinity,
             height: 62,
             child: ElevatedButton(
               onPressed:
-                  isClassLoading ||
-                      selectedStandardId == null ||
-                      selectedDivisionId == null
+                  selectedStandardId == null || selectedDivisionId == null
                   ? null
                   : _startAttendance,
               style: ElevatedButton.styleFrom(
@@ -760,7 +1009,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             ),
           ),
         ),
-
         Material(
           color: Colors.transparent,
           child: InkWell(
@@ -786,7 +1034,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       ),
                     ),
                   ),
-
                   const Icon(
                     Icons.calendar_month_rounded,
                     size: 22,
@@ -801,136 +1048,298 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
-  Widget _buildStandardDropdown({required bool isLoading}) {
+  // Widget _buildStandardDropdown() {
+  //   return _buildDropdownContainer(
+  //     label: 'Standard',
+  //     child: DropdownButtonHideUnderline(
+  //       child: DropdownButton<int>(
+  //         value: selectedStandardId,
+  //         isExpanded: true,
+  //         elevation: 4,
+  //         borderRadius: BorderRadius.circular(18),
+  //         dropdownColor: Colors.white,
+  //         hint: const Text(
+  //           'Select',
+  //           style: TextStyle(fontSize: 14, color: Color(0xFF777777)),
+  //         ),
+  //         icon: const Icon(
+  //           Icons.keyboard_arrow_down_rounded,
+  //           size: 25,
+  //           color: Color(0xFF74777D),
+  //         ),
+  //         style: const TextStyle(
+  //           fontSize: 14,
+  //           fontWeight: FontWeight.w400,
+  //           color: Color(0xFF252525),
+  //         ),
+  //         items: standards.map((standard) {
+  //           return DropdownMenuItem<int>(
+  //             value: standard.standardId,
+  //             child: Text(
+  //               standard.standard ?? '',
+  //               style: const TextStyle(fontSize: 14, color: Color(0xFF252525)),
+  //             ),
+  //           );
+  //         }).toList(),
+  //         onChanged: standards.isEmpty ? null : _selectStandard,
+  //       ),
+  //     ),
+  //   );
+  // }
+
+  // Widget _buildDivisionDropdown() {
+  //   return _buildDropdownContainer(
+  //     label: 'Division',
+  //     child: DropdownButtonHideUnderline(
+  //       child: DropdownButton<int>(
+  //         value: selectedDivisionId,
+  //         isExpanded: true,
+  //         elevation: 4,
+  //         borderRadius: BorderRadius.circular(18),
+  //         dropdownColor: Colors.white,
+  //         hint: const Text(
+  //           'Select',
+  //           style: TextStyle(fontSize: 14, color: Color(0xFF777777)),
+  //         ),
+  //         icon: const Icon(
+  //           Icons.keyboard_arrow_down_rounded,
+  //           size: 25,
+  //           color: Color(0xFF74777D),
+  //         ),
+  //         style: const TextStyle(
+  //           fontSize: 14,
+  //           fontWeight: FontWeight.w400,
+  //           color: Color(0xFF252525),
+  //         ),
+  //         items: divisions.map((division) {
+  //           return DropdownMenuItem<int>(
+  //             value: division.divisionId,
+  //             child: Text(
+  //               division.division ?? '',
+  //               style: const TextStyle(fontSize: 14, color: Color(0xFF252525)),
+  //             ),
+  //           );
+  //         }).toList(),
+  //         onChanged: divisions.isEmpty ? null : _selectDivision,
+  //       ),
+  //     ),
+  //   );
+  // }
+  Widget _buildStandardDropdown() {
+    final List<DropdownMenuItem<int>> items = standards.map((standard) {
+      return DropdownMenuItem<int>(
+        value: standard.standardId,
+        child: Text(
+          standard.standard ?? '',
+          style: const TextStyle(fontSize: 14, color: Color(0xFF252525)),
+        ),
+      );
+    }).toList();
+
+    final DropdownMenuItem<int>? selectedItem = selectedItemOf<int>(
+      items,
+      selectedStandardId,
+    );
+
     return _buildDropdownContainer(
       label: 'Standard',
-      child: isLoading
-          ? const _DropdownLoading()
-          : DropdownButtonHideUnderline(
-              child: DropdownButton<int>(
-                value: selectedStandardId,
-                isExpanded: true,
-                elevation: 4,
-                borderRadius: BorderRadius.circular(18),
-                dropdownColor: Colors.white,
-                hint: const Text(
-                  'Select',
-                  style: TextStyle(fontSize: 14, color: Color(0xFF777777)),
-                ),
-                icon: const Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  size: 25,
-                  color: Color(0xFF74777D),
-                ),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                  color: Color(0xFF252525),
-                ),
-                items: standards.map((standard) {
-                  return DropdownMenuItem<int>(
-                    value: standard.standardId,
-                    child: Text(
-                      standard.standard ?? '',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF252525),
-                      ),
-                    ),
-                  );
-                }).toList(),
-                onChanged: standards.isEmpty ? null : _selectStandard,
-              ),
+      child: InkWell(
+        onTap: items.isEmpty
+            ? null
+            : () async {
+                final PickerSelection<int>? result =
+                    await showOptionPickerSheet<int>(
+                      context: context,
+                      title: 'Select Standard',
+                      items: items,
+                      selectedValue: selectedStandardId,
+                    );
+
+                if (!mounted || result == null) {
+                  return;
+                }
+
+                _selectStandard(result.value);
+              },
+        child: Row(
+          children: [
+            Expanded(
+              child:
+                  selectedItem?.child ??
+                  const Text(
+                    'Select',
+                    style: TextStyle(fontSize: 14, color: Color(0xFF777777)),
+                  ),
             ),
-    );
-  }
-
-  Widget _buildDivisionDropdown({required bool isLoading}) {
-    return _buildDropdownContainer(
-      label: 'Division',
-      child: isLoading
-          ? const _DropdownLoading()
-          : DropdownButtonHideUnderline(
-              child: DropdownButton<int>(
-                value: selectedDivisionId,
-                isExpanded: true,
-                elevation: 4,
-                borderRadius: BorderRadius.circular(18),
-                dropdownColor: Colors.white,
-                hint: const Text(
-                  'Select',
-                  style: TextStyle(fontSize: 14, color: Color(0xFF777777)),
-                ),
-                icon: const Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  size: 25,
-                  color: Color(0xFF74777D),
-                ),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                  color: Color(0xFF252525),
-                ),
-                items: divisions.map((division) {
-                  return DropdownMenuItem<int>(
-                    value: division.divisionId,
-                    child: Text(
-                      division.division ?? '',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF252525),
-                      ),
-                    ),
-                  );
-                }).toList(),
-                onChanged: divisions.isEmpty ? null : _selectDivision,
-              ),
+            const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 25,
+              color: Color(0xFF74777D),
             ),
-    );
-  }
-
-  Widget _buildSectionDropdown() {
-    return _buildDropdownContainer(
-      label: 'Section',
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: selectedSection,
-          isExpanded: true,
-          elevation: 4,
-          borderRadius: BorderRadius.circular(18),
-          dropdownColor: Colors.white,
-          icon: const Icon(
-            Icons.keyboard_arrow_down_rounded,
-            size: 25,
-            color: Color(0xFF74777D),
-          ),
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
-            color: Color(0xFF252525),
-          ),
-          items: sections.map((section) {
-            return DropdownMenuItem<String>(
-              value: section,
-              child: Text(
-                section,
-                style: const TextStyle(fontSize: 14, color: Color(0xFF252525)),
-              ),
-            );
-          }).toList(),
-          onChanged: (value) {
-            if (value == null) {
-              return;
-            }
-
-            setState(() {
-              selectedSection = value;
-            });
-          },
+          ],
         ),
       ),
     );
   }
+
+  Widget _buildDivisionDropdown() {
+    final List<DropdownMenuItem<int>> items = divisions.map((division) {
+      return DropdownMenuItem<int>(
+        value: division.divisionId,
+        child: Text(
+          division.division ?? '',
+          style: const TextStyle(fontSize: 14, color: Color(0xFF252525)),
+        ),
+      );
+    }).toList();
+
+    final DropdownMenuItem<int>? selectedItem = selectedItemOf<int>(
+      items,
+      selectedDivisionId,
+    );
+
+    return _buildDropdownContainer(
+      label: 'Division',
+      child: InkWell(
+        onTap: items.isEmpty
+            ? null
+            : () async {
+                final PickerSelection<int>? result =
+                    await showOptionPickerSheet<int>(
+                      context: context,
+                      title: 'Select Division',
+                      items: items,
+                      selectedValue: selectedDivisionId,
+                    );
+
+                if (!mounted || result == null) {
+                  return;
+                }
+
+                _selectDivision(result.value);
+              },
+        child: Row(
+          children: [
+            Expanded(
+              child:
+                  selectedItem?.child ??
+                  const Text(
+                    'Select',
+                    style: TextStyle(fontSize: 14, color: Color(0xFF777777)),
+                  ),
+            ),
+            const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 25,
+              color: Color(0xFF74777D),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionDropdown() {
+    final List<DropdownMenuItem<String>> items = sections.map((section) {
+      return DropdownMenuItem<String>(
+        value: section,
+        child: Text(
+          section,
+          style: const TextStyle(fontSize: 14, color: Color(0xFF252525)),
+        ),
+      );
+    }).toList();
+
+    final DropdownMenuItem<String>? selectedItem = selectedItemOf<String>(
+      items,
+      selectedSection,
+    );
+
+    return _buildDropdownContainer(
+      label: 'Section',
+      child: InkWell(
+        onTap: items.isEmpty
+            ? null
+            : () async {
+                final PickerSelection<String>? result =
+                    await showOptionPickerSheet<String>(
+                      context: context,
+                      title: 'Select Section',
+                      items: items,
+                      selectedValue: selectedSection,
+                    );
+
+                if (!mounted || result == null || result.value == null) {
+                  return;
+                }
+
+                setState(() {
+                  selectedSection = result.value!;
+                });
+              },
+        child: Row(
+          children: [
+            Expanded(
+              child:
+                  selectedItem?.child ??
+                  const Text(
+                    'Select',
+                    style: TextStyle(fontSize: 14, color: Color(0xFF777777)),
+                  ),
+            ),
+            const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 25,
+              color: Color(0xFF74777D),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Widget _buildSectionDropdown() {
+  //   return _buildDropdownContainer(
+  //     label: 'Section',
+  //     child: DropdownButtonHideUnderline(
+  //       child: DropdownButton<String>(
+  //         value: selectedSection,
+  //         isExpanded: true,
+  //         elevation: 4,
+  //         borderRadius: BorderRadius.circular(18),
+  //         dropdownColor: Colors.white,
+  //         icon: const Icon(
+  //           Icons.keyboard_arrow_down_rounded,
+  //           size: 25,
+  //           color: Color(0xFF74777D),
+  //         ),
+  //         style: const TextStyle(
+  //           fontSize: 14,
+  //           fontWeight: FontWeight.w400,
+  //           color: Color(0xFF252525),
+  //         ),
+  //         items: sections.map((section) {
+  //           return DropdownMenuItem<String>(
+  //             value: section,
+  //             child: Text(
+  //               section,
+  //               style: const TextStyle(fontSize: 14, color: Color(0xFF252525)),
+  //             ),
+  //           );
+  //         }).toList(),
+  //         onChanged: (value) {
+  //           if (value == null) {
+  //             return;
+  //           }
+
+  //           setState(() {
+  //             selectedSection = value;
+  //           });
+  //         },
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget _buildDropdownContainer({
     required String label,
@@ -950,7 +1359,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             ),
           ),
         ),
-
         Container(
           width: double.infinity,
           height: 68,
@@ -997,31 +1405,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           contentPadding: EdgeInsets.zero,
         ),
       ),
-    );
-  }
-}
-
-class _DropdownLoading extends StatelessWidget {
-  const _DropdownLoading();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Row(
-      children: [
-        SizedBox(
-          width: 18,
-          height: 18,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: Color(0xFF9B7ADC),
-          ),
-        ),
-        SizedBox(width: 10),
-        Text(
-          'Loading...',
-          style: TextStyle(fontSize: 13, color: Color(0xFF777777)),
-        ),
-      ],
     );
   }
 }

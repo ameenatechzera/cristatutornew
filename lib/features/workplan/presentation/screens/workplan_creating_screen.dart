@@ -2,10 +2,9 @@
 
 // import 'package:cristalteacher/core/appdata/appdata.dart';
 // import 'package:cristalteacher/features/authentication/domain/entities/class_details_entity.dart';
-// import 'package:cristalteacher/features/authentication/domain/parameters/fetch_tutorshipclass_parameter.dart';
-// import 'package:cristalteacher/features/authentication/presentation/cubit/authentication_cubit.dart';
 // import 'package:cristalteacher/features/workplan/domain/entities/workplan_response_entity.dart';
 // import 'package:cristalteacher/features/workplan/domain/parameters/fetch_workplan_parameter.dart';
+// import 'package:cristalteacher/features/workplan/domain/parameters/save_workplan_parameter.dart';
 // import 'package:cristalteacher/features/workplan/presentation/cubit/workplan_cubit.dart';
 // import 'package:file_picker/file_picker.dart';
 // import 'package:flutter/material.dart';
@@ -27,14 +26,22 @@
 //   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
 //   final TextEditingController durationController = TextEditingController();
+
 //   final TextEditingController allottedPeriodsController =
 //       TextEditingController();
+
 //   final TextEditingController topicController = TextEditingController();
+
 //   final TextEditingController activityController = TextEditingController();
+
 //   final TextEditingController teachingAidsController = TextEditingController();
+
 //   final TextEditingController conclusionController = TextEditingController();
 
 //   final List<WorkPlanData> workPlans = [];
+
+//   // Standards come from AppData, cached when the tutorship classes are
+//   // fetched at login. No API call from this screen.
 //   final List<TutorshipClass> standards = [];
 //   final List<DivisionDetails> divisions = [];
 //   final List<SubjectDetails> subjects = [];
@@ -48,23 +55,60 @@
 //   String? selectedFileName;
 
 //   bool isWorkPlanLoading = false;
-//   bool isCurriculumLoading = false;
 //   bool isSaving = false;
 
 //   @override
 //   void initState() {
 //     super.initState();
 
+//     standards.addAll(AppData.tutorshipClasses);
+
+//     // Open with the first class already chosen instead of empty hints.
+//     _setInitialClassSelection();
+
 //     WidgetsBinding.instance.addPostFrameCallback((_) {
 //       if (!mounted) return;
 
-//       _fetchInitialData();
+//       _fetchWorkPlans();
 //     });
 //   }
 
-//   Future<void> _fetchInitialData() async {
-//     _fetchWorkPlans();
-//     _fetchTutorshipClass();
+//   /// Picks the first standard that actually has a division, then that
+//   /// division and its first subject, filling the dependent lists too.
+//   void _setInitialClassSelection() {
+//     if (standards.isEmpty || selectedStandardId != null) {
+//       return;
+//     }
+
+//     for (final standard in standards) {
+//       final standardDivisions = standard.division ?? <DivisionDetails>[];
+
+//       if (standardDivisions.isEmpty) {
+//         continue;
+//       }
+
+//       selectedStandardId = standard.standardId;
+
+//       divisions
+//         ..clear()
+//         ..addAll(standardDivisions);
+
+//       final division = standardDivisions.first;
+
+//       selectedDivisionId = division.divisionId;
+
+//       final divisionSubjects = division.subject ?? <SubjectDetails>[];
+
+//       subjects
+//         ..clear()
+//         ..addAll(divisionSubjects);
+
+//       if (divisionSubjects.isNotEmpty) {
+//         selectedSubjectId = divisionSubjects.first.subjectId;
+//       }
+
+//       break;
+//     }
 //   }
 
 //   void _fetchWorkPlans() {
@@ -78,7 +122,7 @@
 //         '${now.minute.toString().padLeft(2, '0')}:'
 //         '${now.second.toString().padLeft(2, '0')}';
 
-//     final FetchWorkPlanParameter request = FetchWorkPlanParameter(
+//     final request = FetchWorkPlanParameter(
 //       branchId: 1,
 //       accYear: AppData.accYear,
 //       fromDate: null,
@@ -87,41 +131,7 @@
 //       currentDateTime: currentDateTime,
 //     );
 
-//     debugPrint('');
-//     debugPrint('==============================================');
-//     debugPrint('📘 FETCH WORK PLANS FOR CREATE SCREEN');
-//     debugPrint('==============================================');
-//     debugPrint('Request: ${request.toJson()}');
-//     debugPrint('==============================================');
-
 //     context.read<WorkplanCubit>().fetchWorkPlans(request);
-//   }
-
-//   void _fetchTutorshipClass() {
-//     if (AppData.accYear == null || AppData.accYear!.trim().isEmpty) {
-//       _showMessage('Academic year is unavailable', isError: true);
-//       return;
-//     }
-
-//     if (AppData.employeeId == null) {
-//       _showMessage('Employee ID is unavailable', isError: true);
-//       return;
-//     }
-
-//     final FetchTutorshipClassRequest request = FetchTutorshipClassRequest(
-//       accyear: AppData.accYear!,
-//       employeeId: AppData.employeeId!,
-//       userId: AppData.userId!,
-//     );
-
-//     debugPrint('');
-//     debugPrint('==============================================');
-//     debugPrint('📘 FETCH STANDARD, DIVISION AND SUBJECT');
-//     debugPrint('==============================================');
-//     debugPrint('Request: ${request.toJson()}');
-//     debugPrint('==============================================');
-
-//     context.read<AuthenticationCubit>().fetchTutorshipClass(request);
 //   }
 
 //   void _selectStandard(int? standardId) {
@@ -133,26 +143,15 @@
 //       divisions.clear();
 //       subjects.clear();
 
-//       if (standardId != null) {
-//         TutorshipClass? selectedStandard;
+//       if (standardId == null) return;
 
-//         for (final TutorshipClass item in standards) {
-//           if (item.standardId == standardId) {
-//             selectedStandard = item;
-//             break;
-//           }
+//       for (final standard in standards) {
+//         if (standard.standardId == standardId) {
+//           divisions.addAll(standard.division ?? []);
+//           break;
 //         }
-
-//         divisions.addAll(selectedStandard?.division ?? []);
 //       }
 //     });
-
-//     debugPrint('');
-//     debugPrint('==============================================');
-//     debugPrint('📘 STANDARD SELECTED');
-//     debugPrint('Standard ID: $selectedStandardId');
-//     debugPrint('Division Count: ${divisions.length}');
-//     debugPrint('==============================================');
 //   }
 
 //   void _selectDivision(int? divisionId) {
@@ -162,35 +161,26 @@
 
 //       subjects.clear();
 
-//       if (divisionId != null) {
-//         DivisionDetails? selectedDivision;
+//       if (divisionId == null) return;
 
-//         for (final DivisionDetails item in divisions) {
-//           if (item.divisionId == divisionId) {
-//             selectedDivision = item;
-//             break;
-//           }
+//       for (final division in divisions) {
+//         if (division.divisionId == divisionId) {
+//           subjects.addAll(division.subject ?? []);
+//           break;
 //         }
-
-//         subjects.addAll(selectedDivision?.subject ?? []);
 //       }
 //     });
-
-//     debugPrint('');
-//     debugPrint('==============================================');
-//     debugPrint('📘 DIVISION SELECTED');
-//     debugPrint('Division ID: $selectedDivisionId');
-//     debugPrint('Subject Count: ${subjects.length}');
-//     debugPrint('==============================================');
 //   }
 
 //   Future<void> _pickFile() async {
-//     final FilePickerResult? result = await FilePicker.platform.pickFiles(
+//     final result = await FilePicker.platform.pickFiles(
 //       allowMultiple: false,
 //       type: FileType.any,
 //     );
 
-//     if (result == null || result.files.single.path == null) {
+//     if (result == null ||
+//         result.files.isEmpty ||
+//         result.files.single.path == null) {
 //       return;
 //     }
 
@@ -198,49 +188,70 @@
 //       selectedFile = File(result.files.single.path!);
 //       selectedFileName = result.files.single.name;
 //     });
-
-//     debugPrint('Selected file: ${selectedFile?.path}');
 //   }
 
-//   Future<void> _savePlan() async {
+//   void _savePlan() {
 //     FocusScope.of(context).unfocus();
 
 //     if (!(formKey.currentState?.validate() ?? false)) {
 //       return;
 //     }
 
+//     if (AppData.employeeId == null) {
+//       _showMessage('Employee ID is unavailable', isError: true);
+//       return;
+//     }
+
+//     if (AppData.userId == null) {
+//       _showMessage('User ID is unavailable', isError: true);
+//       return;
+//     }
+
+//     final request = SaveWorkPlanParameter(
+//       masterId: selectedWorkPlanId!,
+//       employeeId: AppData.employeeId!,
+//       standardId: selectedStandardId!,
+//       divisionId: selectedDivisionId!,
+//       subjectId: selectedSubjectId!,
+//       duration: durationController.text.trim(),
+//       periods: allottedPeriodsController.text.trim(),
+//       topic: topicController.text.trim(),
+//       activity: activityController.text.trim(),
+//       tools: teachingAidsController.text.trim(),
+//       remarks: conclusionController.text.trim(),
+//       branchId: 1,
+//       createdUser: AppData.userId.toString(),
+//       attachment: selectedFile,
+//     );
+
+//     context.read<WorkplanCubit>().saveWorkPlan(request);
+//   }
+
+//   void _clearForm() {
+//     formKey.currentState?.reset();
+
+//     durationController.clear();
+//     allottedPeriodsController.clear();
+//     topicController.clear();
+//     activityController.clear();
+//     teachingAidsController.clear();
+//     conclusionController.clear();
+
 //     setState(() {
-//       isSaving = true;
+//       selectedWorkPlanId = null;
+//       selectedStandardId = null;
+//       selectedDivisionId = null;
+//       selectedSubjectId = null;
+
+//       selectedFile = null;
+//       selectedFileName = null;
+
+//       divisions.clear();
+//       subjects.clear();
+
+//       // Back to the same default the screen opened with.
+//       _setInitialClassSelection();
 //     });
-
-//     debugPrint('');
-//     debugPrint('==============================================');
-//     debugPrint('📘 SAVE WORK PLAN VALUES');
-//     debugPrint('==============================================');
-//     debugPrint('Work Plan ID  : $selectedWorkPlanId');
-//     debugPrint('Standard ID   : $selectedStandardId');
-//     debugPrint('Division ID   : $selectedDivisionId');
-//     debugPrint('Subject ID    : $selectedSubjectId');
-//     debugPrint('Duration      : ${durationController.text.trim()}');
-//     debugPrint('Periods       : ${allottedPeriodsController.text.trim()}');
-//     debugPrint('Topic         : ${topicController.text.trim()}');
-//     debugPrint('Activity      : ${activityController.text.trim()}');
-//     debugPrint('Teaching Aids : ${teachingAidsController.text.trim()}');
-//     debugPrint('Conclusion    : ${conclusionController.text.trim()}');
-//     debugPrint('Attachment    : ${selectedFile?.path}');
-//     debugPrint('==============================================');
-
-//     // Call your save-work-plan cubit function here.
-
-//     await Future<void>.delayed(const Duration(milliseconds: 500));
-
-//     if (!mounted) return;
-
-//     setState(() {
-//       isSaving = false;
-//     });
-
-//     _showMessage('Values are ready for the save API');
 //   }
 
 //   void _showMessage(String message, {bool isError = false}) {
@@ -326,6 +337,64 @@
 //     );
 //   }
 
+//   Widget _requiredTextField({
+//     required String label,
+//     required String hint,
+//     required TextEditingController controller,
+//     TextInputType? keyboardType,
+//     int minLines = 1,
+//     int maxLines = 1,
+//   }) {
+//     return Column(
+//       crossAxisAlignment: CrossAxisAlignment.start,
+//       children: [
+//         _label(label, required: true),
+//         const SizedBox(height: 9),
+//         TextFormField(
+//           controller: controller,
+//           keyboardType: keyboardType,
+//           minLines: minLines,
+//           maxLines: maxLines,
+//           textInputAction: maxLines > 1
+//               ? TextInputAction.newline
+//               : TextInputAction.next,
+//           style: const TextStyle(fontSize: 13),
+//           decoration: fieldDecoration(hint),
+//           validator: (value) {
+//             if (value == null || value.trim().isEmpty) {
+//               return 'Please enter ${label.toLowerCase()}';
+//             }
+
+//             return null;
+//           },
+//         ),
+//       ],
+//     );
+//   }
+
+//   Widget _optionalTextField({
+//     required String label,
+//     required String hint,
+//     required TextEditingController controller,
+//   }) {
+//     return Column(
+//       crossAxisAlignment: CrossAxisAlignment.start,
+//       children: [
+//         _label(label),
+//         const SizedBox(height: 9),
+//         TextFormField(
+//           controller: controller,
+//           minLines: 3,
+//           maxLines: 6,
+//           keyboardType: TextInputType.multiline,
+//           textInputAction: TextInputAction.newline,
+//           style: const TextStyle(fontSize: 13),
+//           decoration: fieldDecoration(hint),
+//         ),
+//       ],
+//     );
+//   }
+
 //   @override
 //   void dispose() {
 //     durationController.dispose();
@@ -334,128 +403,79 @@
 //     activityController.dispose();
 //     teachingAidsController.dispose();
 //     conclusionController.dispose();
+
 //     super.dispose();
 //   }
 
 //   @override
 //   Widget build(BuildContext context) {
-//     return MultiBlocListener(
-//       listeners: [
-//         BlocListener<WorkplanCubit, WorkplanState>(
-//           listener: (context, state) {
-//             if (state is FetchWorkPlanLoading) {
-//               setState(() {
-//                 isWorkPlanLoading = true;
-//               });
+//     return BlocListener<WorkplanCubit, WorkplanState>(
+//       listener: (context, state) {
+//         if (!mounted) return;
+
+//         if (state is FetchWorkPlanLoading) {
+//           setState(() {
+//             isWorkPlanLoading = true;
+//           });
+//         }
+
+//         if (state is FetchWorkPlanSuccess) {
+//           final data = state.response.data ?? [];
+
+//           setState(() {
+//             isWorkPlanLoading = false;
+
+//             workPlans
+//               ..clear()
+//               ..addAll(data);
+
+//             final selectionExists = workPlans.any(
+//               (item) => item.id == selectedWorkPlanId,
+//             );
+
+//             if (!selectionExists) {
+//               selectedWorkPlanId = null;
 //             }
+//           });
+//         }
 
-//             if (state is FetchWorkPlanSuccess) {
-//               final List<WorkPlanData> data = state.response.data ?? [];
+//         if (state is FetchWorkPlanFailure) {
+//           setState(() {
+//             isWorkPlanLoading = false;
+//           });
 
-//               setState(() {
-//                 isWorkPlanLoading = false;
+//           _showMessage(state.message, isError: true);
+//         }
 
-//                 workPlans
-//                   ..clear()
-//                   ..addAll(data);
+//         if (state is SaveWorkPlanLoading) {
+//           setState(() {
+//             isSaving = true;
+//           });
+//         }
 
-//                 final bool selectionExists = workPlans.any(
-//                   (item) => item.id == selectedWorkPlanId,
-//                 );
+//         if (state is SaveWorkPlanSuccess) {
+//           setState(() {
+//             isSaving = false;
+//           });
 
-//                 if (!selectionExists) {
-//                   selectedWorkPlanId = null;
-//                 }
-//               });
+//           final String message =
+//               state.response.message?.toString().trim() ?? '';
 
-//               debugPrint('');
-//               debugPrint('==============================================');
-//               debugPrint('✅ WORK PLAN DROPDOWN SUCCESS');
-//               debugPrint('Count: ${workPlans.length}');
+//           _showMessage(
+//             message.isEmpty ? 'Class plan saved successfully' : message,
+//           );
 
-//               for (final WorkPlanData item in workPlans) {
-//                 debugPrint('ID: ${item.id} | Week: ${item.weekName}');
-//               }
+//           _clearForm();
+//         }
 
-//               debugPrint('==============================================');
-//             }
+//         if (state is SaveWorkPlanFailure) {
+//           setState(() {
+//             isSaving = false;
+//           });
 
-//             if (state is FetchWorkPlanFailure) {
-//               setState(() {
-//                 isWorkPlanLoading = false;
-//               });
-
-//               _showMessage(state.message, isError: true);
-//             }
-//           },
-//         ),
-//         BlocListener<AuthenticationCubit, AuthenticationState>(
-//           listener: (context, state) {
-//             if (state is FetchTutorshipClassLoading) {
-//               setState(() {
-//                 isCurriculumLoading = true;
-//               });
-//             }
-
-//             if (state is FetchTutorshipClassSuccess) {
-//               final List<TutorshipClass> data =
-//                   state.response.data?.tutorshipClass ?? [];
-
-//               setState(() {
-//                 isCurriculumLoading = false;
-
-//                 standards
-//                   ..clear()
-//                   ..addAll(data);
-
-//                 divisions.clear();
-//                 subjects.clear();
-
-//                 selectedStandardId = null;
-//                 selectedDivisionId = null;
-//                 selectedSubjectId = null;
-//               });
-
-//               debugPrint('');
-//               debugPrint('==============================================');
-//               debugPrint('✅ CURRICULUM DROPDOWN SUCCESS');
-//               debugPrint('Standard Count: ${standards.length}');
-
-//               for (final TutorshipClass standard in standards) {
-//                 debugPrint(
-//                   'Standard: ${standard.standardId} - '
-//                   '${standard.standard}',
-//                 );
-
-//                 for (final DivisionDetails division
-//                     in standard.division ?? []) {
-//                   debugPrint(
-//                     '  Division: ${division.divisionId} - '
-//                     '${division.division}',
-//                   );
-
-//                   for (final SubjectDetails subject in division.subject ?? []) {
-//                     debugPrint(
-//                       '    Subject: ${subject.subjectId} - '
-//                       '${subject.subject}',
-//                     );
-//                   }
-//                 }
-//               }
-
-//               debugPrint('==============================================');
-//             }
-
-//             if (state is FetchTutorshipClassFailure) {
-//               setState(() {
-//                 isCurriculumLoading = false;
-//               });
-
-//               _showMessage(state.message, isError: true);
-//             }
-//           },
-//         ),
-//       ],
+//           _showMessage(state.message, isError: true);
+//         }
+//       },
 //       child: Scaffold(
 //         backgroundColor: backgroundColor,
 //         appBar: AppBar(
@@ -466,7 +486,7 @@
 //           centerTitle: true,
 //           leadingWidth: 65,
 //           leading: IconButton(
-//             onPressed: () => Navigator.maybePop(context),
+//             onPressed: isSaving ? null : () => Navigator.maybePop(context),
 //             icon: const Icon(Icons.arrow_back, color: primaryColor, size: 25),
 //           ),
 //           title: const Text(
@@ -536,22 +556,23 @@
 //                                   size: 23,
 //                                 ),
 //                           decoration: fieldDecoration(''),
-//                           items: workPlans.where((item) => item.id != null).map(
-//                             (item) {
-//                               return DropdownMenuItem<int>(
-//                                 value: item.id,
-//                                 child: Text(
-//                                   item.weekName ?? 'Work Plan',
-//                                   maxLines: 1,
-//                                   overflow: TextOverflow.ellipsis,
-//                                   style: const TextStyle(
-//                                     color: textColor,
-//                                     fontSize: 13,
+//                           items: workPlans
+//                               .where((item) => item.id != null)
+//                               .map(
+//                                 (item) => DropdownMenuItem<int>(
+//                                   value: item.id,
+//                                   child: Text(
+//                                     item.weekName ?? 'Work Plan',
+//                                     maxLines: 1,
+//                                     overflow: TextOverflow.ellipsis,
+//                                     style: const TextStyle(
+//                                       color: textColor,
+//                                       fontSize: 13,
+//                                     ),
 //                                   ),
 //                                 ),
-//                               );
-//                             },
-//                           ).toList(),
+//                               )
+//                               .toList(),
 //                           validator: (value) {
 //                             if (value == null) {
 //                               return 'Please select work plan';
@@ -559,14 +580,12 @@
 
 //                             return null;
 //                           },
-//                           onChanged: isWorkPlanLoading
+//                           onChanged: isWorkPlanLoading || isSaving
 //                               ? null
 //                               : (value) {
 //                                   setState(() {
 //                                     selectedWorkPlanId = value;
 //                                   });
-
-//                                   debugPrint('Selected Work Plan ID: $value');
 //                                 },
 //                         ),
 //                       ],
@@ -596,11 +615,9 @@
 //                               ? selectedStandardId
 //                               : null,
 //                           isExpanded: true,
-//                           hint: Text(
-//                             isCurriculumLoading
-//                                 ? 'Loading standards...'
-//                                 : 'Select Standard',
-//                             style: const TextStyle(
+//                           hint: const Text(
+//                             'Select Standard',
+//                             style: TextStyle(
 //                               color: Color(0xFF9B98A1),
 //                               fontSize: 13,
 //                             ),
@@ -613,15 +630,15 @@
 //                           decoration: fieldDecoration(''),
 //                           items: standards
 //                               .where((item) => item.standardId != null)
-//                               .map((item) {
-//                                 return DropdownMenuItem<int>(
+//                               .map(
+//                                 (item) => DropdownMenuItem<int>(
 //                                   value: item.standardId,
 //                                   child: Text(
 //                                     item.standard ?? 'Standard',
 //                                     style: const TextStyle(fontSize: 13),
 //                                   ),
-//                                 );
-//                               })
+//                                 ),
+//                               )
 //                               .toList(),
 //                           validator: (value) {
 //                             if (value == null) {
@@ -630,9 +647,7 @@
 
 //                             return null;
 //                           },
-//                           onChanged: isCurriculumLoading
-//                               ? null
-//                               : _selectStandard,
+//                           onChanged: isSaving ? null : _selectStandard,
 //                         ),
 //                         const SizedBox(height: 17),
 //                         _label('Division', required: true),
@@ -660,15 +675,15 @@
 //                           decoration: fieldDecoration(''),
 //                           items: divisions
 //                               .where((item) => item.divisionId != null)
-//                               .map((item) {
-//                                 return DropdownMenuItem<int>(
+//                               .map(
+//                                 (item) => DropdownMenuItem<int>(
 //                                   value: item.divisionId,
 //                                   child: Text(
 //                                     item.division ?? 'Division',
 //                                     style: const TextStyle(fontSize: 13),
 //                                   ),
-//                                 );
-//                               })
+//                                 ),
+//                               )
 //                               .toList(),
 //                           validator: (value) {
 //                             if (value == null) {
@@ -677,7 +692,7 @@
 
 //                             return null;
 //                           },
-//                           onChanged: selectedStandardId == null
+//                           onChanged: selectedStandardId == null || isSaving
 //                               ? null
 //                               : _selectDivision,
 //                         ),
@@ -707,15 +722,15 @@
 //                           decoration: fieldDecoration(''),
 //                           items: subjects
 //                               .where((item) => item.subjectId != null)
-//                               .map((item) {
-//                                 return DropdownMenuItem<int>(
+//                               .map(
+//                                 (item) => DropdownMenuItem<int>(
 //                                   value: item.subjectId,
 //                                   child: Text(
 //                                     item.subject ?? 'Subject',
 //                                     style: const TextStyle(fontSize: 13),
 //                                   ),
-//                                 );
-//                               })
+//                                 ),
+//                               )
 //                               .toList(),
 //                           validator: (value) {
 //                             if (value == null) {
@@ -724,14 +739,12 @@
 
 //                             return null;
 //                           },
-//                           onChanged: selectedDivisionId == null
+//                           onChanged: selectedDivisionId == null || isSaving
 //                               ? null
 //                               : (value) {
 //                                   setState(() {
 //                                     selectedSubjectId = value;
 //                                   });
-
-//                                   debugPrint('Selected Subject ID: $value');
 //                                 },
 //                         ),
 //                       ],
@@ -751,94 +764,44 @@
 //                     child: Column(
 //                       crossAxisAlignment: CrossAxisAlignment.start,
 //                       children: [
-//                         _label('Duration', required: true),
-//                         const SizedBox(height: 9),
-//                         TextFormField(
+//                         _requiredTextField(
+//                           label: 'Duration',
+//                           hint: 'Enter duration',
 //                           controller: durationController,
-//                           style: const TextStyle(fontSize: 13),
-//                           decoration: fieldDecoration('Enter duration'),
-//                           validator: (value) {
-//                             if (value == null || value.trim().isEmpty) {
-//                               return 'Please enter duration';
-//                             }
-
-//                             return null;
-//                           },
 //                         ),
 //                         const SizedBox(height: 17),
-//                         _label('Allotted Periods', required: true),
-//                         const SizedBox(height: 9),
-//                         TextFormField(
+//                         _requiredTextField(
+//                           label: 'Allotted Periods',
+//                           hint: 'Enter allotted periods',
 //                           controller: allottedPeriodsController,
 //                           keyboardType: TextInputType.number,
-//                           style: const TextStyle(fontSize: 13),
-//                           decoration: fieldDecoration('Enter allotted periods'),
-//                           validator: (value) {
-//                             if (value == null || value.trim().isEmpty) {
-//                               return 'Please enter allotted periods';
-//                             }
-
-//                             return null;
-//                           },
 //                         ),
 //                         const SizedBox(height: 17),
-//                         _label('Topic', required: true),
-//                         const SizedBox(height: 9),
-//                         TextFormField(
+//                         _requiredTextField(
+//                           label: 'Topic',
+//                           hint: 'Enter topic',
 //                           controller: topicController,
+//                           keyboardType: TextInputType.multiline,
 //                           minLines: 2,
 //                           maxLines: 4,
-//                           keyboardType: TextInputType.multiline,
-//                           textInputAction: TextInputAction.newline,
-//                           style: const TextStyle(fontSize: 13),
-//                           decoration: fieldDecoration('Enter topic'),
-//                           validator: (value) {
-//                             if (value == null || value.trim().isEmpty) {
-//                               return 'Please enter topic';
-//                             }
-
-//                             return null;
-//                           },
 //                         ),
 //                         const SizedBox(height: 17),
-//                         _label('Activity & Presentation'),
-//                         const SizedBox(height: 9),
-//                         TextFormField(
+//                         _optionalTextField(
+//                           label: 'Activity & Presentation',
+//                           hint: 'Enter activity and presentation',
 //                           controller: activityController,
-//                           minLines: 3,
-//                           maxLines: 6,
-//                           keyboardType: TextInputType.multiline,
-//                           textInputAction: TextInputAction.newline,
-//                           style: const TextStyle(fontSize: 13),
-//                           decoration: fieldDecoration(
-//                             'Enter activity and presentation',
-//                           ),
 //                         ),
 //                         const SizedBox(height: 17),
-//                         _label('Teaching Aids'),
-//                         const SizedBox(height: 9),
-//                         TextFormField(
+//                         _optionalTextField(
+//                           label: 'Teaching Aids',
+//                           hint: 'Enter teaching aids',
 //                           controller: teachingAidsController,
-//                           minLines: 3,
-//                           maxLines: 6,
-//                           keyboardType: TextInputType.multiline,
-//                           textInputAction: TextInputAction.newline,
-//                           style: const TextStyle(fontSize: 13),
-//                           decoration: fieldDecoration('Enter teaching aids'),
 //                         ),
 //                         const SizedBox(height: 17),
-//                         _label('Conclusion & Assessment'),
-//                         const SizedBox(height: 9),
-//                         TextFormField(
+//                         _optionalTextField(
+//                           label: 'Conclusion & Assessment',
+//                           hint: 'Enter conclusion and assessment',
 //                           controller: conclusionController,
-//                           minLines: 3,
-//                           maxLines: 6,
-//                           keyboardType: TextInputType.multiline,
-//                           textInputAction: TextInputAction.newline,
-//                           style: const TextStyle(fontSize: 13),
-//                           decoration: fieldDecoration(
-//                             'Enter conclusion and assessment',
-//                           ),
 //                         ),
 //                       ],
 //                     ),
@@ -860,7 +823,7 @@
 //                         _label('Select file'),
 //                         const SizedBox(height: 10),
 //                         InkWell(
-//                           onTap: _pickFile,
+//                           onTap: isSaving ? null : _pickFile,
 //                           borderRadius: BorderRadius.circular(8),
 //                           child: Container(
 //                             width: double.infinity,
@@ -908,12 +871,14 @@
 //                                         ),
 //                                       ),
 //                                       IconButton(
-//                                         onPressed: () {
-//                                           setState(() {
-//                                             selectedFile = null;
-//                                             selectedFileName = null;
-//                                           });
-//                                         },
+//                                         onPressed: isSaving
+//                                             ? null
+//                                             : () {
+//                                                 setState(() {
+//                                                   selectedFile = null;
+//                                                   selectedFileName = null;
+//                                                 });
+//                                               },
 //                                         icon: const Icon(
 //                                           Icons.close,
 //                                           color: Colors.red,
@@ -932,6 +897,9 @@
 //                             style: ElevatedButton.styleFrom(
 //                               backgroundColor: primaryColor,
 //                               foregroundColor: Colors.white,
+//                               disabledBackgroundColor: primaryColor.withOpacity(
+//                                 0.60,
+//                               ),
 //                               elevation: 0,
 //                               shape: RoundedRectangleBorder(
 //                                 borderRadius: BorderRadius.circular(7),
@@ -970,9 +938,8 @@
 import 'dart:io';
 
 import 'package:cristalteacher/core/appdata/appdata.dart';
+import 'package:cristalteacher/core/utils/custom_dropdown_field.dart';
 import 'package:cristalteacher/features/authentication/domain/entities/class_details_entity.dart';
-import 'package:cristalteacher/features/authentication/domain/parameters/fetch_tutorshipclass_parameter.dart';
-import 'package:cristalteacher/features/authentication/presentation/cubit/authentication_cubit.dart';
 import 'package:cristalteacher/features/workplan/domain/entities/workplan_response_entity.dart';
 import 'package:cristalteacher/features/workplan/domain/parameters/fetch_workplan_parameter.dart';
 import 'package:cristalteacher/features/workplan/domain/parameters/save_workplan_parameter.dart';
@@ -1010,6 +977,7 @@ class _WorkPlanCreatingScreenState extends State<WorkPlanCreatingScreen> {
   final TextEditingController conclusionController = TextEditingController();
 
   final List<WorkPlanData> workPlans = [];
+
   final List<TutorshipClass> standards = [];
   final List<DivisionDetails> divisions = [];
   final List<SubjectDetails> subjects = [];
@@ -1023,19 +991,57 @@ class _WorkPlanCreatingScreenState extends State<WorkPlanCreatingScreen> {
   String? selectedFileName;
 
   bool isWorkPlanLoading = false;
-  bool isCurriculumLoading = false;
   bool isSaving = false;
 
   @override
   void initState() {
     super.initState();
 
+    standards.addAll(AppData.tutorshipClasses);
+
+    _setInitialClassSelection();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
       _fetchWorkPlans();
-      _fetchTutorshipClass();
     });
+  }
+
+  void _setInitialClassSelection() {
+    if (standards.isEmpty || selectedStandardId != null) {
+      return;
+    }
+
+    for (final standard in standards) {
+      final standardDivisions = standard.division ?? <DivisionDetails>[];
+
+      if (standardDivisions.isEmpty) {
+        continue;
+      }
+
+      selectedStandardId = standard.standardId;
+
+      divisions
+        ..clear()
+        ..addAll(standardDivisions);
+
+      final division = standardDivisions.first;
+
+      selectedDivisionId = division.divisionId;
+
+      final divisionSubjects = division.subject ?? <SubjectDetails>[];
+
+      subjects
+        ..clear()
+        ..addAll(divisionSubjects);
+
+      if (divisionSubjects.isNotEmpty) {
+        selectedSubjectId = divisionSubjects.first.subjectId;
+      }
+
+      break;
+    }
   }
 
   void _fetchWorkPlans() {
@@ -1061,31 +1067,6 @@ class _WorkPlanCreatingScreenState extends State<WorkPlanCreatingScreen> {
     context.read<WorkplanCubit>().fetchWorkPlans(request);
   }
 
-  void _fetchTutorshipClass() {
-    if (AppData.accYear == null || AppData.accYear!.trim().isEmpty) {
-      _showMessage('Academic year is unavailable', isError: true);
-      return;
-    }
-
-    if (AppData.employeeId == null) {
-      _showMessage('Employee ID is unavailable', isError: true);
-      return;
-    }
-
-    if (AppData.userId == null) {
-      _showMessage('User ID is unavailable', isError: true);
-      return;
-    }
-
-    final request = FetchTutorshipClassRequest(
-      accyear: AppData.accYear!,
-      employeeId: AppData.employeeId!,
-      userId: AppData.userId!,
-    );
-
-    context.read<AuthenticationCubit>().fetchTutorshipClass(request);
-  }
-
   void _selectStandard(int? standardId) {
     setState(() {
       selectedStandardId = standardId;
@@ -1099,7 +1080,7 @@ class _WorkPlanCreatingScreenState extends State<WorkPlanCreatingScreen> {
 
       for (final standard in standards) {
         if (standard.standardId == standardId) {
-          divisions.addAll(standard.division ?? []);
+          divisions.addAll(standard.division ?? <DivisionDetails>[]);
           break;
         }
       }
@@ -1117,7 +1098,7 @@ class _WorkPlanCreatingScreenState extends State<WorkPlanCreatingScreen> {
 
       for (final division in divisions) {
         if (division.divisionId == divisionId) {
-          subjects.addAll(division.subject ?? []);
+          subjects.addAll(division.subject ?? <SubjectDetails>[]);
           break;
         }
       }
@@ -1200,6 +1181,8 @@ class _WorkPlanCreatingScreenState extends State<WorkPlanCreatingScreen> {
 
       divisions.clear();
       subjects.clear();
+
+      _setInitialClassSelection();
     });
   }
 
@@ -1358,115 +1341,73 @@ class _WorkPlanCreatingScreenState extends State<WorkPlanCreatingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocListener(
-      listeners: [
-        BlocListener<WorkplanCubit, WorkplanState>(
-          listener: (context, state) {
-            if (!mounted) return;
+    return BlocListener<WorkplanCubit, WorkplanState>(
+      listener: (context, state) {
+        if (!mounted) return;
 
-            if (state is FetchWorkPlanLoading) {
-              setState(() {
-                isWorkPlanLoading = true;
-              });
+        if (state is FetchWorkPlanLoading) {
+          setState(() {
+            isWorkPlanLoading = true;
+          });
+        }
+
+        if (state is FetchWorkPlanSuccess) {
+          final data = state.response.data ?? [];
+
+          setState(() {
+            isWorkPlanLoading = false;
+
+            workPlans
+              ..clear()
+              ..addAll(data);
+
+            final selectionExists = workPlans.any(
+              (item) => item.id == selectedWorkPlanId,
+            );
+
+            if (!selectionExists) {
+              selectedWorkPlanId = null;
             }
+          });
+        }
 
-            if (state is FetchWorkPlanSuccess) {
-              final data = state.response.data ?? [];
+        if (state is FetchWorkPlanFailure) {
+          setState(() {
+            isWorkPlanLoading = false;
+          });
 
-              setState(() {
-                isWorkPlanLoading = false;
+          _showMessage(state.message, isError: true);
+        }
 
-                workPlans
-                  ..clear()
-                  ..addAll(data);
+        if (state is SaveWorkPlanLoading) {
+          setState(() {
+            isSaving = true;
+          });
+        }
 
-                final selectionExists = workPlans.any(
-                  (item) => item.id == selectedWorkPlanId,
-                );
+        if (state is SaveWorkPlanSuccess) {
+          setState(() {
+            isSaving = false;
+          });
 
-                if (!selectionExists) {
-                  selectedWorkPlanId = null;
-                }
-              });
-            }
+          final String message =
+              state.response.message?.toString().trim() ?? '';
 
-            if (state is FetchWorkPlanFailure) {
-              setState(() {
-                isWorkPlanLoading = false;
-              });
+          _showMessage(
+            message.isEmpty ? 'Class plan saved successfully' : message,
+          );
 
-              _showMessage(state.message, isError: true);
-            }
+          _clearForm();
+        }
 
-            if (state is SaveWorkPlanLoading) {
-              setState(() {
-                isSaving = true;
-              });
-            }
+        if (state is SaveWorkPlanFailure) {
+          setState(() {
+            isSaving = false;
+          });
 
-            if (state is SaveWorkPlanSuccess) {
-              setState(() {
-                isSaving = false;
-              });
-
-              final String message =
-                  state.response.message?.toString().trim() ?? '';
-
-              _showMessage(
-                message.isEmpty ? 'Class plan saved successfully' : message,
-              );
-
-              _clearForm();
-            }
-
-            if (state is SaveWorkPlanFailure) {
-              setState(() {
-                isSaving = false;
-              });
-
-              _showMessage(state.message, isError: true);
-            }
-          },
-        ),
-        BlocListener<AuthenticationCubit, AuthenticationState>(
-          listener: (context, state) {
-            if (!mounted) return;
-
-            if (state is FetchTutorshipClassLoading) {
-              setState(() {
-                isCurriculumLoading = true;
-              });
-            }
-
-            if (state is FetchTutorshipClassSuccess) {
-              final data = state.response.data?.tutorshipClass ?? [];
-
-              setState(() {
-                isCurriculumLoading = false;
-
-                standards
-                  ..clear()
-                  ..addAll(data);
-
-                divisions.clear();
-                subjects.clear();
-
-                selectedStandardId = null;
-                selectedDivisionId = null;
-                selectedSubjectId = null;
-              });
-            }
-
-            if (state is FetchTutorshipClassFailure) {
-              setState(() {
-                isCurriculumLoading = false;
-              });
-
-              _showMessage(state.message, isError: true);
-            }
-          },
-        ),
-      ],
+          _showMessage(state.message, isError: true);
+        }
+      },
       child: Scaffold(
         backgroundColor: backgroundColor,
         appBar: AppBar(
@@ -1514,56 +1455,20 @@ class _WorkPlanCreatingScreenState extends State<WorkPlanCreatingScreen> {
                       children: [
                         _label('Work Plan', required: true),
                         const SizedBox(height: 9),
-                        DropdownButtonFormField<int>(
-                          value:
+
+                        // WORK PLAN PICKER
+                        FormField<int>(
+                          key: ValueKey(
+                            'workPlan-'
+                            '$selectedWorkPlanId-'
+                            '${workPlans.length}',
+                          ),
+                          initialValue:
                               workPlans.any(
                                 (item) => item.id == selectedWorkPlanId,
                               )
                               ? selectedWorkPlanId
                               : null,
-                          isExpanded: true,
-                          menuMaxHeight: 400,
-                          hint: Text(
-                            isWorkPlanLoading
-                                ? 'Loading work plans...'
-                                : 'Select Work Plan',
-                            style: const TextStyle(
-                              color: Color(0xFF9B98A1),
-                              fontSize: 13,
-                            ),
-                          ),
-                          icon: isWorkPlanLoading
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: primaryColor,
-                                  ),
-                                )
-                              : const Icon(
-                                  Icons.keyboard_arrow_down_rounded,
-                                  color: Color(0xFF78737E),
-                                  size: 23,
-                                ),
-                          decoration: fieldDecoration(''),
-                          items: workPlans
-                              .where((item) => item.id != null)
-                              .map(
-                                (item) => DropdownMenuItem<int>(
-                                  value: item.id,
-                                  child: Text(
-                                    item.weekName ?? 'Work Plan',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: textColor,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ),
-                              )
-                              .toList(),
                           validator: (value) {
                             if (value == null) {
                               return 'Please select work plan';
@@ -1571,13 +1476,93 @@ class _WorkPlanCreatingScreenState extends State<WorkPlanCreatingScreen> {
 
                             return null;
                           },
-                          onChanged: isWorkPlanLoading || isSaving
-                              ? null
-                              : (value) {
-                                  setState(() {
-                                    selectedWorkPlanId = value;
-                                  });
-                                },
+                          builder: (field) {
+                            final List<DropdownMenuItem<int>> items = workPlans
+                                .where((item) => item.id != null)
+                                .map(
+                                  (item) => DropdownMenuItem<int>(
+                                    value: item.id,
+                                    child: Text(
+                                      item.weekName ?? 'Work Plan',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: textColor,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList();
+
+                            final DropdownMenuItem<int>? selectedItem =
+                                selectedItemOf<int>(items, field.value);
+
+                            return GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap:
+                                  isWorkPlanLoading || isSaving || items.isEmpty
+                                  ? null
+                                  : () async {
+                                      final PickerSelection<int>? result =
+                                          await showOptionPickerSheet<int>(
+                                            context: context,
+                                            title: 'Select Work Plan',
+                                            items: items,
+                                            selectedValue: field.value,
+                                          );
+
+                                      if (!mounted || result == null) {
+                                        return;
+                                      }
+
+                                      field.didChange(result.value);
+
+                                      setState(() {
+                                        selectedWorkPlanId = result.value;
+                                      });
+                                    },
+                              child: InputDecorator(
+                                decoration: fieldDecoration(
+                                  '',
+                                ).copyWith(errorText: field.errorText),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child:
+                                          selectedItem?.child ??
+                                          Text(
+                                            isWorkPlanLoading
+                                                ? 'Loading work plans...'
+                                                : 'Select Work Plan',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              color: Color(0xFF9B98A1),
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                    ),
+                                    if (isWorkPlanLoading)
+                                      const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: primaryColor,
+                                        ),
+                                      )
+                                    else
+                                      const Icon(
+                                        Icons.keyboard_arrow_down_rounded,
+                                        color: Color(0xFF78737E),
+                                        size: 23,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -1598,41 +1583,19 @@ class _WorkPlanCreatingScreenState extends State<WorkPlanCreatingScreen> {
                       children: [
                         _label('Standard', required: true),
                         const SizedBox(height: 9),
-                        DropdownButtonFormField<int>(
-                          value:
+
+                        // STANDARD PICKER
+                        FormField<int>(
+                          key: ValueKey(
+                            'standard-'
+                            '$selectedStandardId',
+                          ),
+                          initialValue:
                               standards.any(
                                 (item) => item.standardId == selectedStandardId,
                               )
                               ? selectedStandardId
                               : null,
-                          isExpanded: true,
-                          hint: Text(
-                            isCurriculumLoading
-                                ? 'Loading standards...'
-                                : 'Select Standard',
-                            style: const TextStyle(
-                              color: Color(0xFF9B98A1),
-                              fontSize: 13,
-                            ),
-                          ),
-                          icon: const Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: Color(0xFF78737E),
-                            size: 23,
-                          ),
-                          decoration: fieldDecoration(''),
-                          items: standards
-                              .where((item) => item.standardId != null)
-                              .map(
-                                (item) => DropdownMenuItem<int>(
-                                  value: item.standardId,
-                                  child: Text(
-                                    item.standard ?? 'Standard',
-                                    style: const TextStyle(fontSize: 13),
-                                  ),
-                                ),
-                              )
-                              .toList(),
                           validator: (value) {
                             if (value == null) {
                               return 'Please select standard';
@@ -1640,46 +1603,93 @@ class _WorkPlanCreatingScreenState extends State<WorkPlanCreatingScreen> {
 
                             return null;
                           },
-                          onChanged: isCurriculumLoading || isSaving
-                              ? null
-                              : _selectStandard,
+                          builder: (field) {
+                            final List<DropdownMenuItem<int>> items = standards
+                                .where((item) => item.standardId != null)
+                                .map(
+                                  (item) => DropdownMenuItem<int>(
+                                    value: item.standardId,
+                                    child: Text(
+                                      item.standard ?? 'Standard',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                  ),
+                                )
+                                .toList();
+
+                            final DropdownMenuItem<int>? selectedItem =
+                                selectedItemOf<int>(items, field.value);
+
+                            return GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: isSaving || items.isEmpty
+                                  ? null
+                                  : () async {
+                                      final PickerSelection<int>? result =
+                                          await showOptionPickerSheet<int>(
+                                            context: context,
+                                            title: 'Select Standard',
+                                            items: items,
+                                            selectedValue: field.value,
+                                          );
+
+                                      if (!mounted || result == null) {
+                                        return;
+                                      }
+
+                                      field.didChange(result.value);
+
+                                      _selectStandard(result.value);
+                                    },
+                              child: InputDecorator(
+                                decoration: fieldDecoration(
+                                  '',
+                                ).copyWith(errorText: field.errorText),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child:
+                                          selectedItem?.child ??
+                                          const Text(
+                                            'Select Standard',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: Color(0xFF9B98A1),
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                    ),
+                                    const Icon(
+                                      Icons.keyboard_arrow_down_rounded,
+                                      color: Color(0xFF78737E),
+                                      size: 23,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
                         const SizedBox(height: 17),
                         _label('Division', required: true),
                         const SizedBox(height: 9),
-                        DropdownButtonFormField<int>(
-                          value:
+
+                        // DIVISION PICKER
+                        FormField<int>(
+                          key: ValueKey(
+                            'division-'
+                            '$selectedStandardId-'
+                            '$selectedDivisionId',
+                          ),
+                          initialValue:
                               divisions.any(
                                 (item) => item.divisionId == selectedDivisionId,
                               )
                               ? selectedDivisionId
                               : null,
-                          isExpanded: true,
-                          hint: const Text(
-                            'Select Division',
-                            style: TextStyle(
-                              color: Color(0xFF9B98A1),
-                              fontSize: 13,
-                            ),
-                          ),
-                          icon: const Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: Color(0xFF78737E),
-                            size: 23,
-                          ),
-                          decoration: fieldDecoration(''),
-                          items: divisions
-                              .where((item) => item.divisionId != null)
-                              .map(
-                                (item) => DropdownMenuItem<int>(
-                                  value: item.divisionId,
-                                  child: Text(
-                                    item.division ?? 'Division',
-                                    style: const TextStyle(fontSize: 13),
-                                  ),
-                                ),
-                              )
-                              .toList(),
                           validator: (value) {
                             if (value == null) {
                               return 'Please select division';
@@ -1687,46 +1697,96 @@ class _WorkPlanCreatingScreenState extends State<WorkPlanCreatingScreen> {
 
                             return null;
                           },
-                          onChanged: selectedStandardId == null || isSaving
-                              ? null
-                              : _selectDivision,
+                          builder: (field) {
+                            final List<DropdownMenuItem<int>> items = divisions
+                                .where((item) => item.divisionId != null)
+                                .map(
+                                  (item) => DropdownMenuItem<int>(
+                                    value: item.divisionId,
+                                    child: Text(
+                                      item.division ?? 'Division',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                  ),
+                                )
+                                .toList();
+
+                            final DropdownMenuItem<int>? selectedItem =
+                                selectedItemOf<int>(items, field.value);
+
+                            return GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap:
+                                  selectedStandardId == null ||
+                                      isSaving ||
+                                      items.isEmpty
+                                  ? null
+                                  : () async {
+                                      final PickerSelection<int>? result =
+                                          await showOptionPickerSheet<int>(
+                                            context: context,
+                                            title: 'Select Division',
+                                            items: items,
+                                            selectedValue: field.value,
+                                          );
+
+                                      if (!mounted || result == null) {
+                                        return;
+                                      }
+
+                                      field.didChange(result.value);
+
+                                      _selectDivision(result.value);
+                                    },
+                              child: InputDecorator(
+                                decoration: fieldDecoration(
+                                  '',
+                                ).copyWith(errorText: field.errorText),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child:
+                                          selectedItem?.child ??
+                                          const Text(
+                                            'Select Division',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: Color(0xFF9B98A1),
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                    ),
+                                    const Icon(
+                                      Icons.keyboard_arrow_down_rounded,
+                                      color: Color(0xFF78737E),
+                                      size: 23,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
                         const SizedBox(height: 17),
                         _label('Subject', required: true),
                         const SizedBox(height: 9),
-                        DropdownButtonFormField<int>(
-                          value:
+
+                        // SUBJECT PICKER
+                        FormField<int>(
+                          key: ValueKey(
+                            'subject-'
+                            '$selectedDivisionId-'
+                            '$selectedSubjectId',
+                          ),
+                          initialValue:
                               subjects.any(
                                 (item) => item.subjectId == selectedSubjectId,
                               )
                               ? selectedSubjectId
                               : null,
-                          isExpanded: true,
-                          hint: const Text(
-                            'Select Subject',
-                            style: TextStyle(
-                              color: Color(0xFF9B98A1),
-                              fontSize: 13,
-                            ),
-                          ),
-                          icon: const Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: Color(0xFF78737E),
-                            size: 23,
-                          ),
-                          decoration: fieldDecoration(''),
-                          items: subjects
-                              .where((item) => item.subjectId != null)
-                              .map(
-                                (item) => DropdownMenuItem<int>(
-                                  value: item.subjectId,
-                                  child: Text(
-                                    item.subject ?? 'Subject',
-                                    style: const TextStyle(fontSize: 13),
-                                  ),
-                                ),
-                              )
-                              .toList(),
                           validator: (value) {
                             if (value == null) {
                               return 'Please select subject';
@@ -1734,13 +1794,80 @@ class _WorkPlanCreatingScreenState extends State<WorkPlanCreatingScreen> {
 
                             return null;
                           },
-                          onChanged: selectedDivisionId == null || isSaving
-                              ? null
-                              : (value) {
-                                  setState(() {
-                                    selectedSubjectId = value;
-                                  });
-                                },
+                          builder: (field) {
+                            final List<DropdownMenuItem<int>> items = subjects
+                                .where((item) => item.subjectId != null)
+                                .map(
+                                  (item) => DropdownMenuItem<int>(
+                                    value: item.subjectId,
+                                    child: Text(
+                                      item.subject ?? 'Subject',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                  ),
+                                )
+                                .toList();
+
+                            final DropdownMenuItem<int>? selectedItem =
+                                selectedItemOf<int>(items, field.value);
+
+                            return GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap:
+                                  selectedDivisionId == null ||
+                                      isSaving ||
+                                      items.isEmpty
+                                  ? null
+                                  : () async {
+                                      final PickerSelection<int>? result =
+                                          await showOptionPickerSheet<int>(
+                                            context: context,
+                                            title: 'Select Subject',
+                                            items: items,
+                                            selectedValue: field.value,
+                                          );
+
+                                      if (!mounted || result == null) {
+                                        return;
+                                      }
+
+                                      field.didChange(result.value);
+
+                                      setState(() {
+                                        selectedSubjectId = result.value;
+                                      });
+                                    },
+                              child: InputDecorator(
+                                decoration: fieldDecoration(
+                                  '',
+                                ).copyWith(errorText: field.errorText),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child:
+                                          selectedItem?.child ??
+                                          const Text(
+                                            'Select Subject',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: Color(0xFF9B98A1),
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                    ),
+                                    const Icon(
+                                      Icons.keyboard_arrow_down_rounded,
+                                      color: Color(0xFF78737E),
+                                      size: 23,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),

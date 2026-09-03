@@ -551,36 +551,101 @@ class _FeedScreenState extends State<FeedScreen> {
     if (isFromDate) {
       setState(() {
         fromDate = selectedDate;
-        toDate = null;
       });
 
+      // Do not clear toDate and do not call the API here.
       return;
-    } else {
-      if (fromDate == null) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(content: Text('Please select from date first')),
-          );
-        return;
-      }
-
-      if (selectedDate.isBefore(fromDate!)) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(content: Text('To date cannot be before from date')),
-          );
-        return;
-      }
-
-      setState(() {
-        toDate = selectedDate;
-      });
     }
 
+    if (fromDate == null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Please select from date first')),
+        );
+      return;
+    }
+
+    if (selectedDate.isBefore(fromDate!)) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('To date cannot be before from date')),
+        );
+      return;
+    }
+
+    setState(() {
+      toDate = selectedDate;
+    });
+
+    // API is called only after selecting the to date.
     _fetchFeed();
   }
+  // Future<void> _selectDate({required bool isFromDate}) async {
+  //   final pickedDate = await showDatePicker(
+  //     context: context,
+  //     initialDate: isFromDate
+  //         ? fromDate ?? DateTime.now()
+  //         : toDate ?? fromDate ?? DateTime.now(),
+  //     firstDate: DateTime(2020),
+  //     lastDate: DateTime(2035),
+  //     builder: (context, child) {
+  //       return Theme(
+  //         data: Theme.of(context).copyWith(
+  //           colorScheme: const ColorScheme.light(
+  //             primary: primaryColor,
+  //             onPrimary: Colors.white,
+  //             surface: Colors.white,
+  //             onSurface: Colors.black,
+  //           ),
+  //         ),
+  //         child: child!,
+  //       );
+  //     },
+  //   );
+
+  //   if (pickedDate == null || !mounted) return;
+
+  //   final selectedDate = DateTime(
+  //     pickedDate.year,
+  //     pickedDate.month,
+  //     pickedDate.day,
+  //   );
+
+  //   if (isFromDate) {
+  //     setState(() {
+  //       fromDate = selectedDate;
+  //       toDate = null;
+  //     });
+
+  //     return;
+  //   } else {
+  //     if (fromDate == null) {
+  //       ScaffoldMessenger.of(context)
+  //         ..hideCurrentSnackBar()
+  //         ..showSnackBar(
+  //           const SnackBar(content: Text('Please select from date first')),
+  //         );
+  //       return;
+  //     }
+
+  //     if (selectedDate.isBefore(fromDate!)) {
+  //       ScaffoldMessenger.of(context)
+  //         ..hideCurrentSnackBar()
+  //         ..showSnackBar(
+  //           const SnackBar(content: Text('To date cannot be before from date')),
+  //         );
+  //       return;
+  //     }
+
+  //     setState(() {
+  //       toDate = selectedDate;
+  //     });
+  //   }
+
+  //   _fetchFeed();
+  // }
 
   void showDeleteDialog(int feedId) {
     showDialog(
@@ -806,7 +871,12 @@ class _FeedScreenState extends State<FeedScreen> {
                       //   },
                       // );
                       return FeedCard(
-                        title: item.feedText ?? "",
+                        title: (item.feedText ?? "")
+                            .replaceAll(
+                              RegExp(r'</?p\b[^>]*>', caseSensitive: false),
+                              '',
+                            )
+                            .trim(),
                         date: item.createdDateFormatted ?? "",
                         imagePath: item.files != null && item.files!.isNotEmpty
                             ? item.files!.first.image ?? ""

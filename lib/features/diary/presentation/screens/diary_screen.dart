@@ -2534,6 +2534,10 @@ class _DiaryTypeScreenState extends State<DiaryTypeScreen> {
                           Scaffold.of(scaffoldContext).openDrawer();
                         },
                       ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
+                        child: _buildSearchBox(),
+                      ),
 
                       Expanded(
                         child: BlocConsumer<DiaryCubit, DiaryState>(
@@ -2662,7 +2666,7 @@ class _DiaryTypeScreenState extends State<DiaryTypeScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(18, 12, 18, 100),
         children: [
-          _buildSearchBox(),
+          // _buildSearchBox(),
           const SizedBox(height: 250),
           Center(
             child: Text(
@@ -2678,7 +2682,7 @@ class _DiaryTypeScreenState extends State<DiaryTypeScreen> {
     }
 
     final groupedDiaries = _groupByDate(filtered);
-    final widgets = <Widget>[_buildSearchBox(), const SizedBox(height: 12)];
+    final widgets = <Widget>[];
 
     groupedDiaries.forEach((date, dateDiaries) {
       widgets.add(_DateTitle(date: _formatDisplayDate(date)));
