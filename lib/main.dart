@@ -12,6 +12,8 @@ import 'package:cristalteacher/services/service_locator.dart';
 import 'package:cristalteacher/services/service_locator.dart' as ServiceLocator;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 
 void main() async {
   await ServiceLocator.init();
@@ -40,6 +42,13 @@ class MyApp extends StatelessWidget {
         BlocProvider<WorkplanCubit>(create: (_) => sl<WorkplanCubit>()),
       ],
       child: MaterialApp(
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          FlutterQuillLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en')],
         debugShowCheckedModeBanner: false,
         title: 'Flutter Demo',
         theme: ThemeData(colorScheme: .fromSeed(seedColor: Colors.deepPurple)),

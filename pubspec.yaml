@@ -30,6 +30,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
   flutter_svg: ^2.0.10+1
   dartz: ^0.10.1
   equatable: ^2.0.5
@@ -56,6 +59,7 @@ dependencies:
   flutter_image_compress: ^2.3.0
   flutter_quill: ^11.5.1
   flutter_quill_delta_from_html: ^1.5.3
+  vsc_quill_delta_to_html: ^1.0.5
 dev_dependencies:
   flutter_test:
     sdk: flutter

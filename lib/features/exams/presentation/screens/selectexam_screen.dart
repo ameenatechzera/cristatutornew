@@ -1,8 +1,7 @@
 // import 'package:cristalteacher/core/appdata/appdata.dart';
+// import 'package:cristalteacher/core/utils/custom_dropdown_field.dart';
 // import 'package:cristalteacher/features/attendance/domain/parameters/fetch_attendancedetails_parameter.dart';
 // import 'package:cristalteacher/features/authentication/domain/entities/class_details_entity.dart';
-// import 'package:cristalteacher/features/authentication/domain/parameters/fetch_tutorshipclass_parameter.dart';
-// import 'package:cristalteacher/features/authentication/presentation/cubit/authentication_cubit.dart';
 // import 'package:cristalteacher/features/exams/domain/entities/fetch_gradeplan_entity.dart';
 // import 'package:cristalteacher/features/exams/domain/entities/fetchexam_entity.dart';
 // import 'package:cristalteacher/features/exams/domain/entities/get_all_exam_entity.dart';
@@ -33,6 +32,9 @@
 
 //   List<GradePlanEntity> gradePlans = [];
 //   List<GetAllExamData> exams = [];
+
+//   // Standard / division / subject come from AppData, cached when the
+//   // tutorship classes are fetched at login. No API call from this screen.
 //   List<TutorshipClass> tutorshipClasses = [];
 
 //   int? markEntryId;
@@ -75,8 +77,17 @@
 //   void initState() {
 //     super.initState();
 
+//     tutorshipClasses = AppData.tutorshipClasses;
+
 //     if (isEditMode) {
 //       populateEditData();
+
+//       // The class list is already here, so the names can be resolved
+//       // straight away instead of waiting on an API response.
+//       resolveTutorshipEditValues();
+//     } else {
+//       // Open with the first class already chosen instead of empty hints.
+//       setInitialClassSelection();
 //     }
 
 //     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -84,7 +95,6 @@
 
 //       context.read<ExamCubit>().fetchGradePlan();
 //       context.read<ExamCubit>().getAllExams();
-//       fetchTutorshipClasses();
 //     });
 //   }
 
@@ -125,14 +135,37 @@
 //     selectedDate = parseExamDate(exam.examDate);
 //   }
 
-//   void fetchTutorshipClasses() {
-//     final request = FetchTutorshipClassRequest(
-//       accyear: AppData.accYear,
-//       employeeId: AppData.employeeId,
-//       userId: AppData.userId,
-//     );
+//   /// Picks the first standard that actually has a division, then its
+//   /// first division and first subject, so the fields are never blank
+//   /// on a fresh screen.
+//   void setInitialClassSelection() {
+//     if (tutorshipClasses.isEmpty || selectedStandardId != null) {
+//       return;
+//     }
 
-//     context.read<AuthenticationCubit>().fetchTutorshipClass(request);
+//     for (final standard in tutorshipClasses) {
+//       final divisions = standard.division ?? <DivisionDetails>[];
+
+//       if (divisions.isEmpty) {
+//         continue;
+//       }
+
+//       final division = divisions.first;
+//       final subjects = division.subject ?? <SubjectDetails>[];
+
+//       selectedStandardId = standard.standardId;
+//       selectedStandard = standard.standard;
+
+//       selectedDivisionId = division.divisionId;
+//       selectedDivision = division.division;
+
+//       if (subjects.isNotEmpty) {
+//         selectedSubjectId = subjects.first.subjectId;
+//         selectedSubject = subjects.first.subject;
+//       }
+
+//       break;
+//     }
 //   }
 
 //   DateTime? parseExamDate(String? value) {
@@ -503,267 +536,573 @@
 
 //   @override
 //   Widget build(BuildContext context) {
-//     return BlocListener<AuthenticationCubit, AuthenticationState>(
+//     return BlocConsumer<ExamCubit, ExamState>(
+//       listenWhen: (previous, current) {
+//         return current is FetchGradePlanSuccess ||
+//             current is FetchGradePlanFailure ||
+//             current is GetAllExamSuccess ||
+//             current is GetAllExamFailure;
+//       },
 //       listener: (context, state) {
-//         if (state is FetchTutorshipClassSuccess) {
+//         if (state is FetchGradePlanSuccess) {
 //           setState(() {
-//             tutorshipClasses = state.response.data?.tutorshipClass ?? [];
+//             gradePlans = state.response.data ?? [];
 
 //             if (isEditMode) {
-//               resolveTutorshipEditValues();
-//             } else {
-//               selectedStandardId = null;
-//               selectedStandard = null;
-//               selectedDivisionId = null;
-//               selectedDivision = null;
-//               selectedSubjectId = null;
-//               selectedSubject = null;
+//               resolveGradePlanEditValue();
+//             } else if (gradePlans.isNotEmpty) {
+//               selectedGradePlanId = gradePlans.first.gradePlanId;
+//               selectedGrade = gradePlans.first.gradePlanName;
 //             }
 //           });
 //         }
 
-//         if (state is FetchTutorshipClassFailure) {
+//         if (state is FetchGradePlanFailure) {
+//           showError(state.message);
+//         }
+
+//         if (state is GetAllExamSuccess) {
+//           setState(() {
+//             exams = state.response.data ?? [];
+
+//             if (isEditMode) {
+//               resolveExamEditValue();
+//             } else {
+//               selectedExamId = null;
+//               selectedExam = null;
+//               selectedExamTermId = null;
+//               selectedExamTypeId = null;
+//             }
+//           });
+//         }
+
+//         if (state is GetAllExamFailure) {
 //           showError(state.message);
 //         }
 //       },
-//       child: BlocConsumer<ExamCubit, ExamState>(
-//         listenWhen: (previous, current) {
-//           return current is FetchGradePlanSuccess ||
-//               current is FetchGradePlanFailure ||
-//               current is GetAllExamSuccess ||
-//               current is GetAllExamFailure;
-//         },
-//         listener: (context, state) {
-//           if (state is FetchGradePlanSuccess) {
-//             setState(() {
-//               gradePlans = state.response.data ?? [];
+//       builder: (context, state) {
+//         final isGradeLoading = state is FetchGradePlanLoading;
 
-//               if (isEditMode) {
-//                 resolveGradePlanEditValue();
-//               } else if (gradePlans.isNotEmpty) {
-//                 selectedGradePlanId = gradePlans.first.gradePlanId;
-//                 selectedGrade = gradePlans.first.gradePlanName;
-//               }
-//             });
-//           }
+//         final isExamLoading = state is GetAllExamLoading;
 
-//           if (state is FetchGradePlanFailure) {
-//             showError(state.message);
-//           }
-
-//           if (state is GetAllExamSuccess) {
-//             setState(() {
-//               exams = state.response.data ?? [];
-
-//               if (isEditMode) {
-//                 resolveExamEditValue();
-//               } else {
-//                 selectedExamId = null;
-//                 selectedExam = null;
-//                 selectedExamTermId = null;
-//                 selectedExamTypeId = null;
-//               }
-//             });
-//           }
-
-//           if (state is GetAllExamFailure) {
-//             showError(state.message);
-//           }
-//         },
-//         builder: (context, state) {
-//           final isGradeLoading = state is FetchGradePlanLoading;
-
-//           final isExamLoading = state is GetAllExamLoading;
-
-//           return Scaffold(
+//         return Scaffold(
+//           backgroundColor: Colors.white,
+//           appBar: AppBar(
 //             backgroundColor: Colors.white,
-//             appBar: AppBar(
-//               backgroundColor: Colors.white,
-//               surfaceTintColor: Colors.white,
-//               elevation: 0,
-//               centerTitle: true,
-//               leadingWidth: 65,
-//               leading: IconButton(
-//                 onPressed: () => Navigator.pop(context),
-//                 icon: const Icon(
-//                   Icons.arrow_back,
-//                   color: Colors.black,
-//                   size: 22,
-//                 ),
-//               ),
-//               title: Text(
-//                 isEditMode ? 'Edit Exam' : 'Select Exam',
-//                 style: const TextStyle(
-//                   color: Colors.black,
-//                   fontSize: 16,
-//                   fontWeight: FontWeight.w700,
-//                 ),
+//             surfaceTintColor: Colors.white,
+//             elevation: 0,
+//             centerTitle: true,
+//             leadingWidth: 65,
+//             leading: IconButton(
+//               onPressed: () => Navigator.pop(context),
+//               icon: const Icon(Icons.arrow_back, color: Colors.black, size: 22),
+//             ),
+//             title: Text(
+//               isEditMode ? 'Edit Exam' : 'Select Exam',
+//               style: const TextStyle(
+//                 color: Colors.black,
+//                 fontSize: 16,
+//                 fontWeight: FontWeight.w700,
 //               ),
 //             ),
-//             body: SafeArea(
-//               top: false,
-//               child: SingleChildScrollView(
-//                 padding: const EdgeInsets.fromLTRB(20, 15, 20, 30),
-//                 child: Column(
-//                   crossAxisAlignment: CrossAxisAlignment.start,
-//                   children: [
-//                     const Text(
-//                       'Exam information',
-//                       style: TextStyle(
-//                         color: textColor,
-//                         fontSize: 11,
-//                         fontWeight: FontWeight.w500,
+//           ),
+//           body: SafeArea(
+//             top: false,
+//             child: SingleChildScrollView(
+//               padding: const EdgeInsets.fromLTRB(20, 15, 20, 30),
+//               child: Column(
+//                 crossAxisAlignment: CrossAxisAlignment.start,
+//                 children: [
+//                   const Text(
+//                     'Exam information',
+//                     style: TextStyle(
+//                       color: textColor,
+//                       fontSize: 11,
+//                       fontWeight: FontWeight.w500,
+//                     ),
+//                   ),
+//                   const SizedBox(height: 10),
+//                   buildExamDropdown(isLoading: isExamLoading),
+//                   const SizedBox(height: 8),
+//                   Row(
+//                     children: [
+//                       Expanded(
+//                         child: buildGradeDropdown(isLoading: isGradeLoading),
 //                       ),
+//                       const SizedBox(width: 8),
+//                       Expanded(child: buildDateField()),
+//                     ],
+//                   ),
+//                   const SizedBox(height: 16),
+//                   const Text(
+//                     'Class And Subject',
+//                     style: TextStyle(
+//                       color: textColor,
+//                       fontSize: 11,
+//                       fontWeight: FontWeight.w500,
 //                     ),
-//                     const SizedBox(height: 10),
-//                     buildExamDropdown(isLoading: isExamLoading),
-//                     const SizedBox(height: 8),
-//                     Row(
-//                       children: [
-//                         Expanded(
-//                           child: buildGradeDropdown(isLoading: isGradeLoading),
-//                         ),
-//                         const SizedBox(width: 8),
-//                         Expanded(child: buildDateField()),
-//                       ],
-//                     ),
-//                     const SizedBox(height: 16),
-//                     const Text(
-//                       'Class And Subject',
-//                       style: TextStyle(
-//                         color: textColor,
-//                         fontSize: 11,
-//                         fontWeight: FontWeight.w500,
-//                       ),
-//                     ),
-//                     const SizedBox(height: 12),
-//                     BlocBuilder<AuthenticationCubit, AuthenticationState>(
-//                       builder: (context, authState) {
-//                         final isTutorshipLoading =
-//                             authState is FetchTutorshipClassLoading;
+//                   ),
+//                   const SizedBox(height: 12),
 
-//                         return Column(
-//                           children: [
-//                             Row(
-//                               children: [
-//                                 Expanded(
-//                                   child: buildStandardDropdown(
-//                                     isLoading: isTutorshipLoading,
-//                                   ),
-//                                 ),
-//                                 const SizedBox(width: 8),
-//                                 Expanded(
-//                                   child: buildDivisionDropdown(
-//                                     isLoading: isTutorshipLoading,
-//                                   ),
-//                                 ),
-//                               ],
-//                             ),
-//                             const SizedBox(height: 8),
-//                             buildSubjectDropdown(isLoading: isTutorshipLoading),
-//                           ],
-//                         );
-//                       },
-//                     ),
-//                     const SizedBox(height: 8),
-//                     Row(
-//                       children: [
-//                         Expanded(
-//                           child: buildTextField(
-//                             controller: maxTeController,
-//                             hint: 'MAX TE',
+//                   // Local data, so these never show a loading state.
+//                   Column(
+//                     children: [
+//                       Row(
+//                         children: [
+//                           Expanded(
+//                             child: buildStandardDropdown(isLoading: false),
 //                           ),
+//                           const SizedBox(width: 8),
+//                           Expanded(
+//                             child: buildDivisionDropdown(isLoading: false),
+//                           ),
+//                         ],
+//                       ),
+//                       const SizedBox(height: 8),
+//                       buildSubjectDropdown(isLoading: false),
+//                     ],
+//                   ),
+
+//                   const SizedBox(height: 8),
+//                   Row(
+//                     children: [
+//                       Expanded(
+//                         child: buildTextField(
+//                           controller: maxTeController,
+//                           hint: 'MAX TE',
 //                         ),
-//                         const SizedBox(width: 8),
-//                         Expanded(
-//                           child: buildTextField(
-//                             controller: maxCeController,
-//                             hint: 'MAX CE',
-//                           ),
+//                       ),
+//                       const SizedBox(width: 8),
+//                       Expanded(
+//                         child: buildTextField(
+//                           controller: maxCeController,
+//                           hint: 'MAX CE',
 //                         ),
-//                       ],
-//                     ),
-//                     const SizedBox(height: 66),
-//                     SizedBox(
-//                       width: double.infinity,
-//                       height: 40,
-//                       child: ElevatedButton(
-//                         onPressed: goToExamDetails,
-//                         style: ElevatedButton.styleFrom(
-//                           backgroundColor: primaryColor,
-//                           foregroundColor: Colors.white,
-//                           elevation: 0,
-//                           shadowColor: Colors.transparent,
-//                           shape: RoundedRectangleBorder(
-//                             borderRadius: BorderRadius.circular(5),
-//                           ),
+//                       ),
+//                     ],
+//                   ),
+//                   const SizedBox(height: 66),
+//                   SizedBox(
+//                     width: double.infinity,
+//                     height: 40,
+//                     child: ElevatedButton(
+//                       onPressed: goToExamDetails,
+//                       style: ElevatedButton.styleFrom(
+//                         backgroundColor: primaryColor,
+//                         foregroundColor: Colors.white,
+//                         elevation: 0,
+//                         shadowColor: Colors.transparent,
+//                         shape: RoundedRectangleBorder(
+//                           borderRadius: BorderRadius.circular(5),
 //                         ),
-//                         child: Text(
-//                           'Next',
-//                           style: const TextStyle(
-//                             fontSize: 14,
-//                             fontWeight: FontWeight.w500,
-//                           ),
+//                       ),
+//                       child: Text(
+//                         'Next',
+//                         style: const TextStyle(
+//                           fontSize: 14,
+//                           fontWeight: FontWeight.w500,
 //                         ),
 //                       ),
 //                     ),
-//                   ],
-//                 ),
+//                   ),
+//                 ],
 //               ),
 //             ),
-//           );
-//         },
-//       ),
+//           ),
+//         );
+//       },
 //     );
 //   }
 
-//   Widget buildExamDropdown({required bool isLoading}) {
-//     final validValue = exams.any((exam) => exam.examId == selectedExamId);
+//   // Widget buildExamDropdown({required bool isLoading}) {
+//   //   final validValue = exams.any((exam) => exam.examId == selectedExamId);
 
-//     return DropdownButtonFormField<int>(
-//       value: validValue ? selectedExamId : null,
-//       isExpanded: true,
-//       icon: isLoading
-//           ? const SizedBox(
-//               width: 16,
-//               height: 16,
-//               child: CircularProgressIndicator(
-//                 strokeWidth: 2,
-//                 color: purpleColor,
-//               ),
-//             )
-//           : const Icon(
-//               Icons.keyboard_arrow_down_rounded,
-//               color: purpleColor,
-//               size: 21,
+//   //   return DropdownButtonFormField<int>(
+//   //     value: validValue ? selectedExamId : null,
+//   //     isExpanded: true,
+//   //     icon: isLoading
+//   //         ? const SizedBox(
+//   //             width: 16,
+//   //             height: 16,
+//   //             child: CircularProgressIndicator(
+//   //               strokeWidth: 2,
+//   //               color: purpleColor,
+//   //             ),
+//   //           )
+//   //         : const Icon(
+//   //             Icons.keyboard_arrow_down_rounded,
+//   //             color: purpleColor,
+//   //             size: 21,
+//   //           ),
+//   //     dropdownColor: Colors.white,
+//   //     borderRadius: BorderRadius.circular(12),
+//   //     menuMaxHeight: 300,
+//   //     hint: Text(
+//   //       isLoading ? 'Loading...' : 'Select Exam',
+//   //       style: const TextStyle(color: textColor, fontSize: 11),
+//   //     ),
+//   //     decoration: dropdownDecoration(),
+//   //     items: exams.where((exam) => exam.examId != null).map((exam) {
+//   //       return DropdownMenuItem<int>(
+//   //         value: exam.examId,
+//   //         child: Text(
+//   //           exam.examName ?? '',
+//   //           overflow: TextOverflow.ellipsis,
+//   //           style: const TextStyle(color: textColor, fontSize: 11),
+//   //         ),
+//   //       );
+//   //     }).toList(),
+//   //     onChanged: isLoading
+//   //         ? null
+//   //         : (value) {
+//   //             if (value == null) return;
+
+//   //             GetAllExamData? selectedItem;
+
+//   //             for (final exam in exams) {
+//   //               if (exam.examId == value) {
+//   //                 selectedItem = exam;
+//   //                 break;
+//   //               }
+//   //             }
+
+//   //             if (selectedItem == null) return;
+
+//   //             setState(() {
+//   //               selectedExamId = selectedItem!.examId;
+//   //               selectedExam = selectedItem.examName;
+//   //               selectedExamTermId = selectedItem.examTermId;
+//   //               selectedExamTypeId = selectedItem.examTypeId;
+//   //             });
+//   //           },
+//   //   );
+//   // }
+
+//   // Widget buildGradeDropdown({required bool isLoading}) {
+//   //   final validValue = gradePlans.any(
+//   //     (grade) => grade.gradePlanId == selectedGradePlanId,
+//   //   );
+
+//   //   return DropdownButtonFormField<int>(
+//   //     value: validValue ? selectedGradePlanId : null,
+//   //     isExpanded: true,
+//   //     icon: isLoading
+//   //         ? const SizedBox(
+//   //             width: 16,
+//   //             height: 16,
+//   //             child: CircularProgressIndicator(
+//   //               strokeWidth: 2,
+//   //               color: purpleColor,
+//   //             ),
+//   //           )
+//   //         : const Icon(
+//   //             Icons.keyboard_arrow_down_rounded,
+//   //             color: purpleColor,
+//   //             size: 21,
+//   //           ),
+//   //     dropdownColor: Colors.white,
+//   //     borderRadius: BorderRadius.circular(12),
+//   //     menuMaxHeight: 300,
+//   //     hint: Text(
+//   //       isLoading ? 'Loading...' : 'Grade',
+//   //       style: const TextStyle(color: textColor, fontSize: 11),
+//   //     ),
+//   //     decoration: dropdownDecoration(),
+//   //     items: gradePlans.where((grade) => grade.gradePlanId != null).map((
+//   //       grade,
+//   //     ) {
+//   //       return DropdownMenuItem<int>(
+//   //         value: grade.gradePlanId,
+//   //         child: Text(
+//   //           grade.gradePlanName ?? '',
+//   //           overflow: TextOverflow.ellipsis,
+//   //           style: const TextStyle(color: textColor, fontSize: 11),
+//   //         ),
+//   //       );
+//   //     }).toList(),
+//   //     onChanged: isLoading
+//   //         ? null
+//   //         : (value) {
+//   //             if (value == null) return;
+
+//   //             GradePlanEntity? selectedItem;
+
+//   //             for (final grade in gradePlans) {
+//   //               if (grade.gradePlanId == value) {
+//   //                 selectedItem = grade;
+//   //                 break;
+//   //               }
+//   //             }
+
+//   //             if (selectedItem == null) return;
+
+//   //             setState(() {
+//   //               selectedGradePlanId = selectedItem!.gradePlanId;
+//   //               selectedGrade = selectedItem.gradePlanName;
+//   //             });
+//   //           },
+//   //   );
+//   // }
+
+//   // Widget buildStandardDropdown({required bool isLoading}) {
+//   //   final uniqueStandards = <int, TutorshipClass>{};
+
+//   //   for (final standard in tutorshipClasses) {
+//   //     if (standard.standardId != null) {
+//   //       uniqueStandards[standard.standardId!] = standard;
+//   //     }
+//   //   }
+
+//   //   final standards = uniqueStandards.values.toList();
+
+//   //   final validValue = standards.any(
+//   //     (standard) => standard.standardId == selectedStandardId,
+//   //   );
+
+//   //   return DropdownButtonFormField<int>(
+//   //     value: validValue ? selectedStandardId : null,
+//   //     isExpanded: true,
+//   //     icon: isLoading
+//   //         ? const SizedBox(
+//   //             width: 16,
+//   //             height: 16,
+//   //             child: CircularProgressIndicator(
+//   //               strokeWidth: 2,
+//   //               color: purpleColor,
+//   //             ),
+//   //           )
+//   //         : const Icon(
+//   //             Icons.keyboard_arrow_down_rounded,
+//   //             color: purpleColor,
+//   //             size: 21,
+//   //           ),
+//   //     dropdownColor: Colors.white,
+//   //     borderRadius: BorderRadius.circular(12),
+//   //     menuMaxHeight: 300,
+//   //     hint: Text(
+//   //       isLoading ? 'Loading...' : 'Standard',
+//   //       style: const TextStyle(color: textColor, fontSize: 11),
+//   //     ),
+//   //     decoration: dropdownDecoration(),
+//   //     items: standards.map((standard) {
+//   //       return DropdownMenuItem<int>(
+//   //         value: standard.standardId,
+//   //         child: Text(
+//   //           standard.standard ?? '',
+//   //           overflow: TextOverflow.ellipsis,
+//   //           style: const TextStyle(color: textColor, fontSize: 11),
+//   //         ),
+//   //       );
+//   //     }).toList(),
+//   //     onChanged: isLoading
+//   //         ? null
+//   //         : (value) {
+//   //             if (value == null) return;
+
+//   //             TutorshipClass? selectedItem;
+
+//   //             for (final standard in standards) {
+//   //               if (standard.standardId == value) {
+//   //                 selectedItem = standard;
+//   //                 break;
+//   //               }
+//   //             }
+
+//   //             if (selectedItem == null) return;
+
+//   //             setState(() {
+//   //               selectedStandardId = selectedItem!.standardId;
+//   //               selectedStandard = selectedItem.standard;
+
+//   //               selectedDivisionId = null;
+//   //               selectedDivision = null;
+
+//   //               selectedSubjectId = null;
+//   //               selectedSubject = null;
+//   //             });
+//   //           },
+//   //   );
+//   // }
+
+//   // Widget buildDivisionDropdown({required bool isLoading}) {
+//   //   final divisions = availableDivisions;
+
+//   //   final validValue = divisions.any(
+//   //     (division) => division.divisionId == selectedDivisionId,
+//   //   );
+
+//   //   return DropdownButtonFormField<int>(
+//   //     value: validValue ? selectedDivisionId : null,
+//   //     isExpanded: true,
+//   //     icon: isLoading
+//   //         ? const SizedBox(
+//   //             width: 16,
+//   //             height: 16,
+//   //             child: CircularProgressIndicator(
+//   //               strokeWidth: 2,
+//   //               color: purpleColor,
+//   //             ),
+//   //           )
+//   //         : const Icon(
+//   //             Icons.keyboard_arrow_down_rounded,
+//   //             color: purpleColor,
+//   //             size: 21,
+//   //           ),
+//   //     dropdownColor: Colors.white,
+//   //     borderRadius: BorderRadius.circular(12),
+//   //     menuMaxHeight: 300,
+//   //     hint: Text(
+//   //       isLoading ? 'Loading...' : 'Division',
+//   //       style: const TextStyle(color: textColor, fontSize: 11),
+//   //     ),
+//   //     decoration: dropdownDecoration(),
+//   //     items: divisions.where((division) => division.divisionId != null).map((
+//   //       division,
+//   //     ) {
+//   //       return DropdownMenuItem<int>(
+//   //         value: division.divisionId,
+//   //         child: Text(
+//   //           division.division ?? '',
+//   //           overflow: TextOverflow.ellipsis,
+//   //           style: const TextStyle(color: textColor, fontSize: 11),
+//   //         ),
+//   //       );
+//   //     }).toList(),
+//   //     onChanged: isLoading
+//   //         ? null
+//   //         : (value) {
+//   //             if (value == null) return;
+
+//   //             DivisionDetails? selectedItem;
+
+//   //             for (final division in divisions) {
+//   //               if (division.divisionId == value) {
+//   //                 selectedItem = division;
+//   //                 break;
+//   //               }
+//   //             }
+
+//   //             if (selectedItem == null) return;
+
+//   //             setState(() {
+//   //               selectedDivisionId = selectedItem!.divisionId;
+//   //               selectedDivision = selectedItem.division;
+
+//   //               selectedSubjectId = null;
+//   //               selectedSubject = null;
+//   //             });
+//   //           },
+//   //   );
+//   // }
+
+//   // Widget buildSubjectDropdown({required bool isLoading}) {
+//   //   final subjects = availableSubjects;
+
+//   //   final validValue = subjects.any(
+//   //     (subject) => subject.subjectId == selectedSubjectId,
+//   //   );
+
+//   //   return DropdownButtonFormField<int>(
+//   //     value: validValue ? selectedSubjectId : null,
+//   //     isExpanded: true,
+//   //     icon: isLoading
+//   //         ? const SizedBox(
+//   //             width: 16,
+//   //             height: 16,
+//   //             child: CircularProgressIndicator(
+//   //               strokeWidth: 2,
+//   //               color: purpleColor,
+//   //             ),
+//   //           )
+//   //         : const Icon(
+//   //             Icons.keyboard_arrow_down_rounded,
+//   //             color: purpleColor,
+//   //             size: 21,
+//   //           ),
+//   //     dropdownColor: Colors.white,
+//   //     borderRadius: BorderRadius.circular(12),
+//   //     menuMaxHeight: 300,
+//   //     hint: Text(
+//   //       isLoading ? 'Loading...' : 'Select Subject',
+//   //       style: const TextStyle(color: textColor, fontSize: 11),
+//   //     ),
+//   //     decoration: dropdownDecoration(),
+//   //     items: subjects.where((subject) => subject.subjectId != null).map((
+//   //       subject,
+//   //     ) {
+//   //       return DropdownMenuItem<int>(
+//   //         value: subject.subjectId,
+//   //         child: Text(
+//   //           subject.subject ?? '',
+//   //           overflow: TextOverflow.ellipsis,
+//   //           style: const TextStyle(color: textColor, fontSize: 11),
+//   //         ),
+//   //       );
+//   //     }).toList(),
+//   //     onChanged: isLoading
+//   //         ? null
+//   //         : (value) {
+//   //             if (value == null) return;
+
+//   //             SubjectDetails? selectedItem;
+
+//   //             for (final subject in subjects) {
+//   //               if (subject.subjectId == value) {
+//   //                 selectedItem = subject;
+//   //                 break;
+//   //               }
+//   //             }
+
+//   //             if (selectedItem == null) return;
+
+//   //             setState(() {
+//   //               selectedSubjectId = selectedItem!.subjectId;
+//   //               selectedSubject = selectedItem.subject;
+//   //             });
+//   //           },
+//   //   );
+//   // }
+//   Widget buildExamDropdown({required bool isLoading}) {
+//     final List<DropdownMenuItem<int>> items = exams
+//         .where((exam) => exam.examId != null)
+//         .map((exam) {
+//           return DropdownMenuItem<int>(
+//             value: exam.examId,
+//             child: Text(
+//               exam.examName ?? '',
+//               overflow: TextOverflow.ellipsis,
+//               style: const TextStyle(color: textColor, fontSize: 11),
 //             ),
-//       dropdownColor: Colors.white,
-//       borderRadius: BorderRadius.circular(12),
-//       menuMaxHeight: 300,
-//       hint: Text(
-//         isLoading ? 'Loading...' : 'Select Exam',
-//         style: const TextStyle(color: textColor, fontSize: 11),
-//       ),
-//       decoration: dropdownDecoration(),
-//       items: exams.where((exam) => exam.examId != null).map((exam) {
-//         return DropdownMenuItem<int>(
-//           value: exam.examId,
-//           child: Text(
-//             exam.examName ?? '',
-//             overflow: TextOverflow.ellipsis,
-//             style: const TextStyle(color: textColor, fontSize: 11),
-//           ),
-//         );
-//       }).toList(),
-//       onChanged: isLoading
+//           );
+//         })
+//         .toList();
+
+//     final DropdownMenuItem<int>? selectedItem = selectedItemOf<int>(
+//       items,
+//       selectedExamId,
+//     );
+
+//     return GestureDetector(
+//       behavior: HitTestBehavior.opaque,
+//       onTap: isLoading || items.isEmpty
 //           ? null
-//           : (value) {
-//               if (value == null) return;
+//           : () async {
+//               final PickerSelection<int>? result =
+//                   await showOptionPickerSheet<int>(
+//                     context: context,
+//                     title: 'Select Exam',
+//                     items: items,
+//                     selectedValue: selectedExamId,
+//                   );
+
+//               if (!mounted || result == null || result.value == null) {
+//                 return;
+//               }
 
 //               GetAllExamData? selectedItem;
 
-//               for (final exam in exams) {
-//                 if (exam.examId == value) {
+//               for (final GetAllExamData exam in exams) {
+//                 if (exam.examId == result.value) {
 //                   selectedItem = exam;
 //                   break;
 //                 }
@@ -778,60 +1117,80 @@
 //                 selectedExamTypeId = selectedItem.examTypeId;
 //               });
 //             },
+//       child: InputDecorator(
+//         decoration: dropdownDecoration(),
+//         child: Row(
+//           children: [
+//             Expanded(
+//               child:
+//                   selectedItem?.child ??
+//                   Text(
+//                     isLoading ? 'Loading...' : 'Select Exam',
+//                     style: const TextStyle(color: textColor, fontSize: 11),
+//                   ),
+//             ),
+//             if (isLoading)
+//               const SizedBox(
+//                 width: 16,
+//                 height: 16,
+//                 child: CircularProgressIndicator(
+//                   strokeWidth: 2,
+//                   color: purpleColor,
+//                 ),
+//               )
+//             else
+//               const Icon(
+//                 Icons.keyboard_arrow_down_rounded,
+//                 color: purpleColor,
+//                 size: 21,
+//               ),
+//           ],
+//         ),
+//       ),
 //     );
 //   }
 
 //   Widget buildGradeDropdown({required bool isLoading}) {
-//     final validValue = gradePlans.any(
-//       (grade) => grade.gradePlanId == selectedGradePlanId,
+//     final List<DropdownMenuItem<int>> items = gradePlans
+//         .where((grade) => grade.gradePlanId != null)
+//         .map((grade) {
+//           return DropdownMenuItem<int>(
+//             value: grade.gradePlanId,
+//             child: Text(
+//               grade.gradePlanName ?? '',
+//               overflow: TextOverflow.ellipsis,
+//               style: const TextStyle(color: textColor, fontSize: 11),
+//             ),
+//           );
+//         })
+//         .toList();
+
+//     final DropdownMenuItem<int>? selectedItem = selectedItemOf<int>(
+//       items,
+//       selectedGradePlanId,
 //     );
 
-//     return DropdownButtonFormField<int>(
-//       value: validValue ? selectedGradePlanId : null,
-//       isExpanded: true,
-//       icon: isLoading
-//           ? const SizedBox(
-//               width: 16,
-//               height: 16,
-//               child: CircularProgressIndicator(
-//                 strokeWidth: 2,
-//                 color: purpleColor,
-//               ),
-//             )
-//           : const Icon(
-//               Icons.keyboard_arrow_down_rounded,
-//               color: purpleColor,
-//               size: 21,
-//             ),
-//       dropdownColor: Colors.white,
-//       borderRadius: BorderRadius.circular(12),
-//       menuMaxHeight: 300,
-//       hint: Text(
-//         isLoading ? 'Loading...' : 'Grade',
-//         style: const TextStyle(color: textColor, fontSize: 11),
-//       ),
-//       decoration: dropdownDecoration(),
-//       items: gradePlans.where((grade) => grade.gradePlanId != null).map((
-//         grade,
-//       ) {
-//         return DropdownMenuItem<int>(
-//           value: grade.gradePlanId,
-//           child: Text(
-//             grade.gradePlanName ?? '',
-//             overflow: TextOverflow.ellipsis,
-//             style: const TextStyle(color: textColor, fontSize: 11),
-//           ),
-//         );
-//       }).toList(),
-//       onChanged: isLoading
+//     return GestureDetector(
+//       behavior: HitTestBehavior.opaque,
+//       onTap: isLoading || items.isEmpty
 //           ? null
-//           : (value) {
-//               if (value == null) return;
+//           : () async {
+//               final PickerSelection<int>? result =
+//                   await showOptionPickerSheet<int>(
+//                     context: context,
+//                     title: 'Select Grade',
+//                     items: items,
+//                     selectedValue: selectedGradePlanId,
+//                   );
+
+//               if (!mounted || result == null || result.value == null) {
+//                 return;
+//               }
 
 //               GradePlanEntity? selectedItem;
 
-//               for (final grade in gradePlans) {
-//                 if (grade.gradePlanId == value) {
+//               for (final GradePlanEntity grade in gradePlans) {
+//                 if (grade.gradePlanId == result.value) {
 //                   selectedItem = grade;
 //                   break;
 //                 }
@@ -844,68 +1203,87 @@
 //                 selectedGrade = selectedItem.gradePlanName;
 //               });
 //             },
+//       child: InputDecorator(
+//         decoration: dropdownDecoration(),
+//         child: Row(
+//           children: [
+//             Expanded(
+//               child:
+//                   selectedItem?.child ??
+//                   Text(
+//                     isLoading ? 'Loading...' : 'Grade',
+//                     style: const TextStyle(color: textColor, fontSize: 11),
+//                   ),
+//             ),
+//             if (isLoading)
+//               const SizedBox(
+//                 width: 16,
+//                 height: 16,
+//                 child: CircularProgressIndicator(
+//                   strokeWidth: 2,
+//                   color: purpleColor,
+//                 ),
+//               )
+//             else
+//               const Icon(
+//                 Icons.keyboard_arrow_down_rounded,
+//                 color: purpleColor,
+//                 size: 21,
+//               ),
+//           ],
+//         ),
+//       ),
 //     );
 //   }
 
 //   Widget buildStandardDropdown({required bool isLoading}) {
-//     final uniqueStandards = <int, TutorshipClass>{};
+//     final Map<int, TutorshipClass> uniqueStandards = {};
 
-//     for (final standard in tutorshipClasses) {
+//     for (final TutorshipClass standard in tutorshipClasses) {
 //       if (standard.standardId != null) {
 //         uniqueStandards[standard.standardId!] = standard;
 //       }
 //     }
 
-//     final standards = uniqueStandards.values.toList();
+//     final List<TutorshipClass> standards = uniqueStandards.values.toList();
 
-//     final validValue = standards.any(
-//       (standard) => standard.standardId == selectedStandardId,
+//     final List<DropdownMenuItem<int>> items = standards.map((standard) {
+//       return DropdownMenuItem<int>(
+//         value: standard.standardId,
+//         child: Text(
+//           standard.standard ?? '',
+//           overflow: TextOverflow.ellipsis,
+//           style: const TextStyle(color: textColor, fontSize: 11),
+//         ),
+//       );
+//     }).toList();
+
+//     final DropdownMenuItem<int>? selectedItem = selectedItemOf<int>(
+//       items,
+//       selectedStandardId,
 //     );
 
-//     return DropdownButtonFormField<int>(
-//       value: validValue ? selectedStandardId : null,
-//       isExpanded: true,
-//       icon: isLoading
-//           ? const SizedBox(
-//               width: 16,
-//               height: 16,
-//               child: CircularProgressIndicator(
-//                 strokeWidth: 2,
-//                 color: purpleColor,
-//               ),
-//             )
-//           : const Icon(
-//               Icons.keyboard_arrow_down_rounded,
-//               color: purpleColor,
-//               size: 21,
-//             ),
-//       dropdownColor: Colors.white,
-//       borderRadius: BorderRadius.circular(12),
-//       menuMaxHeight: 300,
-//       hint: Text(
-//         isLoading ? 'Loading...' : 'Standard',
-//         style: const TextStyle(color: textColor, fontSize: 11),
-//       ),
-//       decoration: dropdownDecoration(),
-//       items: standards.map((standard) {
-//         return DropdownMenuItem<int>(
-//           value: standard.standardId,
-//           child: Text(
-//             standard.standard ?? '',
-//             overflow: TextOverflow.ellipsis,
-//             style: const TextStyle(color: textColor, fontSize: 11),
-//           ),
-//         );
-//       }).toList(),
-//       onChanged: isLoading
+//     return GestureDetector(
+//       behavior: HitTestBehavior.opaque,
+//       onTap: isLoading || items.isEmpty
 //           ? null
-//           : (value) {
-//               if (value == null) return;
+//           : () async {
+//               final PickerSelection<int>? result =
+//                   await showOptionPickerSheet<int>(
+//                     context: context,
+//                     title: 'Select Standard',
+//                     items: items,
+//                     selectedValue: selectedStandardId,
+//                   );
+
+//               if (!mounted || result == null || result.value == null) {
+//                 return;
+//               }
 
 //               TutorshipClass? selectedItem;
 
-//               for (final standard in standards) {
-//                 if (standard.standardId == value) {
+//               for (final TutorshipClass standard in standards) {
+//                 if (standard.standardId == result.value) {
 //                   selectedItem = standard;
 //                   break;
 //                 }
@@ -924,62 +1302,82 @@
 //                 selectedSubject = null;
 //               });
 //             },
+//       child: InputDecorator(
+//         decoration: dropdownDecoration(),
+//         child: Row(
+//           children: [
+//             Expanded(
+//               child:
+//                   selectedItem?.child ??
+//                   Text(
+//                     isLoading ? 'Loading...' : 'Standard',
+//                     style: const TextStyle(color: textColor, fontSize: 11),
+//                   ),
+//             ),
+//             if (isLoading)
+//               const SizedBox(
+//                 width: 16,
+//                 height: 16,
+//                 child: CircularProgressIndicator(
+//                   strokeWidth: 2,
+//                   color: purpleColor,
+//                 ),
+//               )
+//             else
+//               const Icon(
+//                 Icons.keyboard_arrow_down_rounded,
+//                 color: purpleColor,
+//                 size: 21,
+//               ),
+//           ],
+//         ),
+//       ),
 //     );
 //   }
 
 //   Widget buildDivisionDropdown({required bool isLoading}) {
-//     final divisions = availableDivisions;
+//     final List<DivisionDetails> divisions = availableDivisions;
 
-//     final validValue = divisions.any(
-//       (division) => division.divisionId == selectedDivisionId,
+//     final List<DropdownMenuItem<int>> items = divisions
+//         .where((division) => division.divisionId != null)
+//         .map((division) {
+//           return DropdownMenuItem<int>(
+//             value: division.divisionId,
+//             child: Text(
+//               division.division ?? '',
+//               overflow: TextOverflow.ellipsis,
+//               style: const TextStyle(color: textColor, fontSize: 11),
+//             ),
+//           );
+//         })
+//         .toList();
+
+//     final DropdownMenuItem<int>? selectedItem = selectedItemOf<int>(
+//       items,
+//       selectedDivisionId,
 //     );
 
-//     return DropdownButtonFormField<int>(
-//       value: validValue ? selectedDivisionId : null,
-//       isExpanded: true,
-//       icon: isLoading
-//           ? const SizedBox(
-//               width: 16,
-//               height: 16,
-//               child: CircularProgressIndicator(
-//                 strokeWidth: 2,
-//                 color: purpleColor,
-//               ),
-//             )
-//           : const Icon(
-//               Icons.keyboard_arrow_down_rounded,
-//               color: purpleColor,
-//               size: 21,
-//             ),
-//       dropdownColor: Colors.white,
-//       borderRadius: BorderRadius.circular(12),
-//       menuMaxHeight: 300,
-//       hint: Text(
-//         isLoading ? 'Loading...' : 'Division',
-//         style: const TextStyle(color: textColor, fontSize: 11),
-//       ),
-//       decoration: dropdownDecoration(),
-//       items: divisions.where((division) => division.divisionId != null).map((
-//         division,
-//       ) {
-//         return DropdownMenuItem<int>(
-//           value: division.divisionId,
-//           child: Text(
-//             division.division ?? '',
-//             overflow: TextOverflow.ellipsis,
-//             style: const TextStyle(color: textColor, fontSize: 11),
-//           ),
-//         );
-//       }).toList(),
-//       onChanged: isLoading
+//     return GestureDetector(
+//       behavior: HitTestBehavior.opaque,
+//       onTap: isLoading || items.isEmpty
 //           ? null
-//           : (value) {
-//               if (value == null) return;
+//           : () async {
+//               final PickerSelection<int>? result =
+//                   await showOptionPickerSheet<int>(
+//                     context: context,
+//                     title: 'Select Division',
+//                     items: items,
+//                     selectedValue: selectedDivisionId,
+//                   );
+
+//               if (!mounted || result == null || result.value == null) {
+//                 return;
+//               }
 
 //               DivisionDetails? selectedItem;
 
-//               for (final division in divisions) {
-//                 if (division.divisionId == value) {
+//               for (final DivisionDetails division in divisions) {
+//                 if (division.divisionId == result.value) {
 //                   selectedItem = division;
 //                   break;
 //                 }
@@ -995,62 +1393,82 @@
 //                 selectedSubject = null;
 //               });
 //             },
+//       child: InputDecorator(
+//         decoration: dropdownDecoration(),
+//         child: Row(
+//           children: [
+//             Expanded(
+//               child:
+//                   selectedItem?.child ??
+//                   Text(
+//                     isLoading ? 'Loading...' : 'Division',
+//                     style: const TextStyle(color: textColor, fontSize: 11),
+//                   ),
+//             ),
+//             if (isLoading)
+//               const SizedBox(
+//                 width: 16,
+//                 height: 16,
+//                 child: CircularProgressIndicator(
+//                   strokeWidth: 2,
+//                   color: purpleColor,
+//                 ),
+//               )
+//             else
+//               const Icon(
+//                 Icons.keyboard_arrow_down_rounded,
+//                 color: purpleColor,
+//                 size: 21,
+//               ),
+//           ],
+//         ),
+//       ),
 //     );
 //   }
 
 //   Widget buildSubjectDropdown({required bool isLoading}) {
-//     final subjects = availableSubjects;
+//     final List<SubjectDetails> subjects = availableSubjects;
 
-//     final validValue = subjects.any(
-//       (subject) => subject.subjectId == selectedSubjectId,
+//     final List<DropdownMenuItem<int>> items = subjects
+//         .where((subject) => subject.subjectId != null)
+//         .map((subject) {
+//           return DropdownMenuItem<int>(
+//             value: subject.subjectId,
+//             child: Text(
+//               subject.subject ?? '',
+//               overflow: TextOverflow.ellipsis,
+//               style: const TextStyle(color: textColor, fontSize: 11),
+//             ),
+//           );
+//         })
+//         .toList();
+
+//     final DropdownMenuItem<int>? selectedItem = selectedItemOf<int>(
+//       items,
+//       selectedSubjectId,
 //     );
 
-//     return DropdownButtonFormField<int>(
-//       value: validValue ? selectedSubjectId : null,
-//       isExpanded: true,
-//       icon: isLoading
-//           ? const SizedBox(
-//               width: 16,
-//               height: 16,
-//               child: CircularProgressIndicator(
-//                 strokeWidth: 2,
-//                 color: purpleColor,
-//               ),
-//             )
-//           : const Icon(
-//               Icons.keyboard_arrow_down_rounded,
-//               color: purpleColor,
-//               size: 21,
-//             ),
-//       dropdownColor: Colors.white,
-//       borderRadius: BorderRadius.circular(12),
-//       menuMaxHeight: 300,
-//       hint: Text(
-//         isLoading ? 'Loading...' : 'Select Subject',
-//         style: const TextStyle(color: textColor, fontSize: 11),
-//       ),
-//       decoration: dropdownDecoration(),
-//       items: subjects.where((subject) => subject.subjectId != null).map((
-//         subject,
-//       ) {
-//         return DropdownMenuItem<int>(
-//           value: subject.subjectId,
-//           child: Text(
-//             subject.subject ?? '',
-//             overflow: TextOverflow.ellipsis,
-//             style: const TextStyle(color: textColor, fontSize: 11),
-//           ),
-//         );
-//       }).toList(),
-//       onChanged: isLoading
+//     return GestureDetector(
+//       behavior: HitTestBehavior.opaque,
+//       onTap: isLoading || items.isEmpty
 //           ? null
-//           : (value) {
-//               if (value == null) return;
+//           : () async {
+//               final PickerSelection<int>? result =
+//                   await showOptionPickerSheet<int>(
+//                     context: context,
+//                     title: 'Select Subject',
+//                     items: items,
+//                     selectedValue: selectedSubjectId,
+//                   );
+
+//               if (!mounted || result == null || result.value == null) {
+//                 return;
+//               }
 
 //               SubjectDetails? selectedItem;
 
-//               for (final subject in subjects) {
-//                 if (subject.subjectId == value) {
+//               for (final SubjectDetails subject in subjects) {
+//                 if (subject.subjectId == result.value) {
 //                   selectedItem = subject;
 //                   break;
 //                 }
@@ -1063,6 +1481,36 @@
 //                 selectedSubject = selectedItem.subject;
 //               });
 //             },
+//       child: InputDecorator(
+//         decoration: dropdownDecoration(),
+//         child: Row(
+//           children: [
+//             Expanded(
+//               child:
+//                   selectedItem?.child ??
+//                   Text(
+//                     isLoading ? 'Loading...' : 'Select Subject',
+//                     style: const TextStyle(color: textColor, fontSize: 11),
+//                   ),
+//             ),
+//             if (isLoading)
+//               const SizedBox(
+//                 width: 16,
+//                 height: 16,
+//                 child: CircularProgressIndicator(
+//                   strokeWidth: 2,
+//                   color: purpleColor,
+//                 ),
+//               )
+//             else
+//               const Icon(
+//                 Icons.keyboard_arrow_down_rounded,
+//                 color: purpleColor,
+//                 size: 21,
+//               ),
+//           ],
+//         ),
+//       ),
 //     );
 //   }
 
@@ -1218,9 +1666,20 @@ class _SelectExamScreenState extends State<SelectExamScreen> {
   List<GradePlanEntity> gradePlans = [];
   List<GetAllExamData> exams = [];
 
-  // Standard / division / subject come from AppData, cached when the
-  // tutorship classes are fetched at login. No API call from this screen.
+  /// Teacher's own classes. Only used as a fallback source of divisions and
+  /// subjects, and to decide which standard opens first.
   List<TutorshipClass> tutorshipClasses = [];
+
+  /// Every standard in the branch, same as the diary screen. Falls back to
+  /// the tutorship classes when the full list was never cached.
+  List<TutorshipClass> standardList = [];
+
+  /// Divisions of the selected standard and subjects of the selected
+  /// division. Held in state instead of being recomputed, so a standard
+  /// coming from the full list can borrow its divisions from the
+  /// tutorship class with the same id.
+  List<DivisionDetails> divisions = [];
+  List<SubjectDetails> subjects = [];
 
   int? markEntryId;
 
@@ -1262,7 +1721,7 @@ class _SelectExamScreenState extends State<SelectExamScreen> {
   void initState() {
     super.initState();
 
-    tutorshipClasses = AppData.tutorshipClasses;
+    loadClassData();
 
     if (isEditMode) {
       populateEditData();
@@ -1288,6 +1747,18 @@ class _SelectExamScreenState extends State<SelectExamScreen> {
     maxTeController.dispose();
     maxCeController.dispose();
     super.dispose();
+  }
+
+  /// Standard / division / subject come from AppData, cached when the class
+  /// details are fetched at login. No API call from this screen.
+  void loadClassData() {
+    tutorshipClasses = List<TutorshipClass>.from(AppData.tutorshipClasses);
+
+    standardList = List<TutorshipClass>.from(
+      AppData.standards.isNotEmpty
+          ? AppData.standards
+          : AppData.tutorshipClasses,
+    );
   }
 
   void populateEditData() {
@@ -1320,37 +1791,253 @@ class _SelectExamScreenState extends State<SelectExamScreen> {
     selectedDate = parseExamDate(exam.examDate);
   }
 
-  /// Picks the first standard that actually has a division, then its
-  /// first division and first subject, so the fields are never blank
-  /// on a fresh screen.
+  /// Divisions of [standard]. The complete standard list often carries no
+  /// divisions, so it falls back to the tutorship class with the same id.
+  List<DivisionDetails> divisionsFor(TutorshipClass standard) {
+    final List<DivisionDetails> own = List<DivisionDetails>.from(
+      standard.division ?? const <DivisionDetails>[],
+    );
+
+    if (own.isNotEmpty) {
+      return own;
+    }
+
+    for (final TutorshipClass item in tutorshipClasses) {
+      if (item.standardId == standard.standardId) {
+        return List<DivisionDetails>.from(
+          item.division ?? const <DivisionDetails>[],
+        );
+      }
+    }
+
+    return <DivisionDetails>[];
+  }
+
+  TutorshipClass? findStandard(int? standardId) {
+    if (standardId == null) return null;
+
+    for (final TutorshipClass item in standardList) {
+      if (item.standardId == standardId) {
+        return item;
+      }
+    }
+
+    // The full list may not hold this class - try the teacher's own
+    // tutorship classes as well.
+    for (final TutorshipClass item in tutorshipClasses) {
+      if (item.standardId == standardId) {
+        return item;
+      }
+    }
+
+    return null;
+  }
+
+  /// Picks the teacher's own class when there is one, otherwise the first
+  /// standard in the list, then its first division and subject, so the
+  /// fields are never blank on a fresh screen.
   void setInitialClassSelection() {
-    if (tutorshipClasses.isEmpty || selectedStandardId != null) {
+    if (standardList.isEmpty && tutorshipClasses.isEmpty) {
       return;
     }
 
-    for (final standard in tutorshipClasses) {
-      final divisions = standard.division ?? <DivisionDetails>[];
+    if (selectedStandardId != null) {
+      return;
+    }
 
-      if (divisions.isEmpty) {
+    final TutorshipClass initialTutorship = tutorshipClasses.isNotEmpty
+        ? tutorshipClasses.first
+        : standardList.first;
+
+    final TutorshipClass standard =
+        findStandard(initialTutorship.standardId) ?? initialTutorship;
+
+    selectedStandardId = standard.standardId;
+    selectedStandard = standard.standard?.trim();
+
+    divisions = divisionsFor(standard);
+
+    if (divisions.isNotEmpty) {
+      final DivisionDetails division = divisions.first;
+
+      selectedDivisionId = division.divisionId;
+      selectedDivision = division.division?.trim();
+
+      subjects = List<SubjectDetails>.from(
+        division.subject ?? const <SubjectDetails>[],
+      );
+
+      if (subjects.isNotEmpty) {
+        final SubjectDetails subject = subjects.first;
+
+        selectedSubjectId = subject.subjectId;
+        selectedSubject = subject.subject?.trim();
+      }
+    }
+  }
+
+  /// Opens the option lists on the class the mark entry was saved against.
+  ///
+  /// The saved ids are never replaced. When one of them is missing from the
+  /// cached lists the value from the mark entry is kept and shown as-is, so
+  /// editing an exam can never silently move it to a different class.
+  void resolveTutorshipEditValues() {
+    if (!isEditMode) return;
+
+    final TutorshipClass? standard = findStandard(widget.exam?.standardId);
+
+    if (standard == null) {
+      // Not in the cached lists. populateEditData already holds the ids
+      // and names from the mark entry, which is all the update needs.
+      return;
+    }
+
+    selectedStandardId = standard.standardId;
+    selectedStandard = standard.standard?.trim() ?? selectedStandard;
+
+    divisions = divisionsFor(standard);
+
+    for (final DivisionDetails item in divisions) {
+      if (item.divisionId != widget.exam?.divisionId) {
         continue;
       }
 
-      final division = divisions.first;
-      final subjects = division.subject ?? <SubjectDetails>[];
+      selectedDivisionId = item.divisionId;
+      selectedDivision = item.division?.trim() ?? selectedDivision;
 
-      selectedStandardId = standard.standardId;
-      selectedStandard = standard.standard;
-
-      selectedDivisionId = division.divisionId;
-      selectedDivision = division.division;
-
-      if (subjects.isNotEmpty) {
-        selectedSubjectId = subjects.first.subjectId;
-        selectedSubject = subjects.first.subject;
-      }
+      subjects = List<SubjectDetails>.from(
+        item.subject ?? const <SubjectDetails>[],
+      );
 
       break;
     }
+
+    for (final SubjectDetails item in subjects) {
+      if (item.subjectId != widget.exam?.subjectId) {
+        continue;
+      }
+
+      selectedSubjectId = item.subjectId;
+      selectedSubject = item.subject?.trim() ?? selectedSubject;
+
+      break;
+    }
+  }
+
+  void selectStandard(int? standardId) {
+    final TutorshipClass? standard = findStandard(standardId);
+
+    if (standard == null) {
+      showError('Selected standard was not found');
+      return;
+    }
+
+    final List<DivisionDetails> newDivisions = divisionsFor(standard);
+
+    int? newDivisionId;
+    String? newDivisionName;
+
+    List<SubjectDetails> newSubjects = <SubjectDetails>[];
+
+    int? newSubjectId;
+    String? newSubjectName;
+
+    // Automatically select the first division and subject whenever the
+    // standard changes.
+    if (newDivisions.isNotEmpty) {
+      final DivisionDetails firstDivision = newDivisions.first;
+
+      newDivisionId = firstDivision.divisionId;
+      newDivisionName = firstDivision.division?.trim();
+
+      newSubjects = List<SubjectDetails>.from(
+        firstDivision.subject ?? const <SubjectDetails>[],
+      );
+
+      if (newSubjects.isNotEmpty) {
+        final SubjectDetails firstSubject = newSubjects.first;
+
+        newSubjectId = firstSubject.subjectId;
+        newSubjectName = firstSubject.subject?.trim();
+      }
+    }
+
+    setState(() {
+      selectedStandardId = standard.standardId;
+      selectedStandard = standard.standard?.trim();
+
+      divisions = newDivisions;
+
+      selectedDivisionId = newDivisionId;
+      selectedDivision = newDivisionName;
+
+      subjects = newSubjects;
+
+      selectedSubjectId = newSubjectId;
+      selectedSubject = newSubjectName;
+    });
+  }
+
+  void selectDivision(int? divisionId) {
+    DivisionDetails? division;
+
+    for (final DivisionDetails item in divisions) {
+      if (item.divisionId == divisionId) {
+        division = item;
+        break;
+      }
+    }
+
+    if (division == null) {
+      showError('Selected division was not found');
+      return;
+    }
+
+    final List<SubjectDetails> newSubjects = List<SubjectDetails>.from(
+      division.subject ?? const <SubjectDetails>[],
+    );
+
+    int? newSubjectId;
+    String? newSubjectName;
+
+    // Automatically select the first subject whenever the division changes.
+    if (newSubjects.isNotEmpty) {
+      final SubjectDetails firstSubject = newSubjects.first;
+
+      newSubjectId = firstSubject.subjectId;
+      newSubjectName = firstSubject.subject?.trim();
+    }
+
+    setState(() {
+      selectedDivisionId = division!.divisionId;
+      selectedDivision = division.division?.trim();
+
+      subjects = newSubjects;
+
+      selectedSubjectId = newSubjectId;
+      selectedSubject = newSubjectName;
+    });
+  }
+
+  void selectSubject(int? subjectId) {
+    SubjectDetails? subject;
+
+    for (final SubjectDetails item in subjects) {
+      if (item.subjectId == subjectId) {
+        subject = item;
+        break;
+      }
+    }
+
+    if (subject == null) {
+      showError('Selected subject was not found');
+      return;
+    }
+
+    setState(() {
+      selectedSubjectId = subject!.subjectId;
+      selectedSubject = subject.subject?.trim();
+    });
   }
 
   DateTime? parseExamDate(String? value) {
@@ -1384,82 +2071,6 @@ class _SelectExamScreenState extends State<SelectExamScreen> {
     return '${date.day.toString().padLeft(2, '0')}-'
         '${date.month.toString().padLeft(2, '0')}-'
         '${date.year}';
-  }
-
-  List<DivisionDetails> get availableDivisions {
-    final divisions = <int, DivisionDetails>{};
-
-    for (final standard in tutorshipClasses) {
-      if (standard.standardId != selectedStandardId) {
-        continue;
-      }
-
-      for (final division in standard.division ?? <DivisionDetails>[]) {
-        if (division.divisionId != null) {
-          divisions[division.divisionId!] = division;
-        }
-      }
-    }
-
-    return divisions.values.toList();
-  }
-
-  List<SubjectDetails> get availableSubjects {
-    final subjects = <int, SubjectDetails>{};
-
-    for (final standard in tutorshipClasses) {
-      if (standard.standardId != selectedStandardId) {
-        continue;
-      }
-
-      for (final division in standard.division ?? <DivisionDetails>[]) {
-        if (division.divisionId != selectedDivisionId) {
-          continue;
-        }
-
-        for (final subject in division.subject ?? <SubjectDetails>[]) {
-          if (subject.subjectId != null) {
-            subjects[subject.subjectId!] = subject;
-          }
-        }
-      }
-    }
-
-    return subjects.values.toList();
-  }
-
-  void resolveTutorshipEditValues() {
-    if (!isEditMode) return;
-
-    for (final standard in tutorshipClasses) {
-      if (standard.standardId != widget.exam?.standardId) {
-        continue;
-      }
-
-      selectedStandardId = standard.standardId;
-      selectedStandard = standard.standard;
-
-      for (final division in standard.division ?? <DivisionDetails>[]) {
-        if (division.divisionId != widget.exam?.divisionId) {
-          continue;
-        }
-
-        selectedDivisionId = division.divisionId;
-        selectedDivision = division.division;
-
-        for (final subject in division.subject ?? <SubjectDetails>[]) {
-          if (subject.subjectId == widget.exam?.subjectId) {
-            selectedSubjectId = subject.subjectId;
-            selectedSubject = subject.subject;
-            break;
-          }
-        }
-
-        break;
-      }
-
-      break;
-    }
   }
 
   void resolveExamEditValue() {
@@ -1614,104 +2225,10 @@ class _SelectExamScreenState extends State<SelectExamScreen> {
       Navigator.pop(context, true);
     }
   }
-  // Future<void> goToExamDetails() async {
-  //   final maxTe = int.tryParse(maxTeController.text.trim());
-  //   final maxCe = int.tryParse(maxCeController.text.trim());
-
-  //   if (selectedExamId == null ||
-  //       selectedExam == null ||
-  //       selectedExamTermId == null ||
-  //       selectedExamTypeId == null ||
-  //       selectedGradePlanId == null ||
-  //       selectedGrade == null ||
-  //       selectedDate == null ||
-  //       selectedStandardId == null ||
-  //       selectedStandard == null ||
-  //       selectedDivisionId == null ||
-  //       selectedDivision == null ||
-  //       selectedSubjectId == null ||
-  //       selectedSubject == null ||
-  //       maxTe == null ||
-  //       maxCe == null) {
-  //     showError('Please fill all the fields');
-  //     return;
-  //   }
-
-  //   if (maxTe <= 0 || maxCe <= 0) {
-  //     showError('Maximum marks must be greater than zero');
-  //     return;
-  //   }
-
-  //   if (isEditMode && markEntryId == null) {
-  //     showError('Mark entry ID is unavailable');
-  //     return;
-  //   }
-
-  //   if (AppData.accYear == null) {
-  //     showError('Academic year is unavailable');
-  //     return;
-  //   }
-
-  //   final request = AttendanceDetailsRequest(
-  //     accyear: AppData.accYear!,
-  //     standard: selectedStandardId!,
-  //     division: selectedDivisionId!,
-  //     sortBy: 'alphabetic',
-  //   );
-
-  //   debugPrint('==========================================');
-  //   debugPrint(isEditMode ? 'EDIT EXAM DETAILS' : 'ADD EXAM DETAILS');
-  //   debugPrint('Mark Entry ID: $markEntryId');
-  //   debugPrint('Exam ID: $selectedExamId');
-  //   debugPrint('Exam Name: $selectedExam');
-  //   debugPrint('Exam Term ID: $selectedExamTermId');
-  //   debugPrint('Exam Type ID: $selectedExamTypeId');
-  //   debugPrint('Grade Plan ID: $selectedGradePlanId');
-  //   debugPrint('Grade Plan: $selectedGrade');
-  //   debugPrint('Date: ${formatDate(selectedDate!)}');
-  //   debugPrint('Standard ID: $selectedStandardId');
-  //   debugPrint('Standard: $selectedStandard');
-  //   debugPrint('Division ID: $selectedDivisionId');
-  //   debugPrint('Division: $selectedDivision');
-  //   debugPrint('Subject ID: $selectedSubjectId');
-  //   debugPrint('Subject: $selectedSubject');
-  //   debugPrint('Max TE: $maxTe');
-  //   debugPrint('Max CE: $maxCe');
-  //   debugPrint('Attendance request: ${request.toJson()}');
-  //   debugPrint('==========================================');
-
-  //   final result = await Navigator.of(context).push<bool>(
-  //     MaterialPageRoute(
-  //       builder: (_) => ExamDetailsScreen(
-  //         request: request,
-  //         examId: selectedExamId!,
-  //         examName: selectedExam!,
-  //         examTermId: selectedExamTermId!,
-  //         examTypeId: selectedExamTypeId!,
-  //         gradePlanId: selectedGradePlanId!,
-  //         gradePlanName: selectedGrade!,
-  //         gradeSettings: selectedGradePlan?.settings ?? const [],
-  //         examDate: selectedDate!,
-  //         standardId: selectedStandardId!,
-  //         standardName: selectedStandard!,
-  //         divisionId: selectedDivisionId!,
-  //         divisionName: selectedDivision!,
-  //         subjectId: selectedSubjectId!,
-  //         subjectName: selectedSubject!,
-  //         maxTe: maxTe,
-  //         maxCe: maxCe,
-  //         isEditMode: isEditMode,
-  //         markEntryId: markEntryId,
-  //       ),
-  //     ),
-  //   );
-
-  //   if (result == true && mounted) {
-  //     Navigator.pop(context, true);
-  //   }
-  // }
 
   void showError(String message) {
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
@@ -1881,9 +2398,9 @@ class _SelectExamScreenState extends State<SelectExamScreen> {
                           borderRadius: BorderRadius.circular(5),
                         ),
                       ),
-                      child: Text(
+                      child: const Text(
                         'Next',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
@@ -1899,354 +2416,6 @@ class _SelectExamScreenState extends State<SelectExamScreen> {
     );
   }
 
-  // Widget buildExamDropdown({required bool isLoading}) {
-  //   final validValue = exams.any((exam) => exam.examId == selectedExamId);
-
-  //   return DropdownButtonFormField<int>(
-  //     value: validValue ? selectedExamId : null,
-  //     isExpanded: true,
-  //     icon: isLoading
-  //         ? const SizedBox(
-  //             width: 16,
-  //             height: 16,
-  //             child: CircularProgressIndicator(
-  //               strokeWidth: 2,
-  //               color: purpleColor,
-  //             ),
-  //           )
-  //         : const Icon(
-  //             Icons.keyboard_arrow_down_rounded,
-  //             color: purpleColor,
-  //             size: 21,
-  //           ),
-  //     dropdownColor: Colors.white,
-  //     borderRadius: BorderRadius.circular(12),
-  //     menuMaxHeight: 300,
-  //     hint: Text(
-  //       isLoading ? 'Loading...' : 'Select Exam',
-  //       style: const TextStyle(color: textColor, fontSize: 11),
-  //     ),
-  //     decoration: dropdownDecoration(),
-  //     items: exams.where((exam) => exam.examId != null).map((exam) {
-  //       return DropdownMenuItem<int>(
-  //         value: exam.examId,
-  //         child: Text(
-  //           exam.examName ?? '',
-  //           overflow: TextOverflow.ellipsis,
-  //           style: const TextStyle(color: textColor, fontSize: 11),
-  //         ),
-  //       );
-  //     }).toList(),
-  //     onChanged: isLoading
-  //         ? null
-  //         : (value) {
-  //             if (value == null) return;
-
-  //             GetAllExamData? selectedItem;
-
-  //             for (final exam in exams) {
-  //               if (exam.examId == value) {
-  //                 selectedItem = exam;
-  //                 break;
-  //               }
-  //             }
-
-  //             if (selectedItem == null) return;
-
-  //             setState(() {
-  //               selectedExamId = selectedItem!.examId;
-  //               selectedExam = selectedItem.examName;
-  //               selectedExamTermId = selectedItem.examTermId;
-  //               selectedExamTypeId = selectedItem.examTypeId;
-  //             });
-  //           },
-  //   );
-  // }
-
-  // Widget buildGradeDropdown({required bool isLoading}) {
-  //   final validValue = gradePlans.any(
-  //     (grade) => grade.gradePlanId == selectedGradePlanId,
-  //   );
-
-  //   return DropdownButtonFormField<int>(
-  //     value: validValue ? selectedGradePlanId : null,
-  //     isExpanded: true,
-  //     icon: isLoading
-  //         ? const SizedBox(
-  //             width: 16,
-  //             height: 16,
-  //             child: CircularProgressIndicator(
-  //               strokeWidth: 2,
-  //               color: purpleColor,
-  //             ),
-  //           )
-  //         : const Icon(
-  //             Icons.keyboard_arrow_down_rounded,
-  //             color: purpleColor,
-  //             size: 21,
-  //           ),
-  //     dropdownColor: Colors.white,
-  //     borderRadius: BorderRadius.circular(12),
-  //     menuMaxHeight: 300,
-  //     hint: Text(
-  //       isLoading ? 'Loading...' : 'Grade',
-  //       style: const TextStyle(color: textColor, fontSize: 11),
-  //     ),
-  //     decoration: dropdownDecoration(),
-  //     items: gradePlans.where((grade) => grade.gradePlanId != null).map((
-  //       grade,
-  //     ) {
-  //       return DropdownMenuItem<int>(
-  //         value: grade.gradePlanId,
-  //         child: Text(
-  //           grade.gradePlanName ?? '',
-  //           overflow: TextOverflow.ellipsis,
-  //           style: const TextStyle(color: textColor, fontSize: 11),
-  //         ),
-  //       );
-  //     }).toList(),
-  //     onChanged: isLoading
-  //         ? null
-  //         : (value) {
-  //             if (value == null) return;
-
-  //             GradePlanEntity? selectedItem;
-
-  //             for (final grade in gradePlans) {
-  //               if (grade.gradePlanId == value) {
-  //                 selectedItem = grade;
-  //                 break;
-  //               }
-  //             }
-
-  //             if (selectedItem == null) return;
-
-  //             setState(() {
-  //               selectedGradePlanId = selectedItem!.gradePlanId;
-  //               selectedGrade = selectedItem.gradePlanName;
-  //             });
-  //           },
-  //   );
-  // }
-
-  // Widget buildStandardDropdown({required bool isLoading}) {
-  //   final uniqueStandards = <int, TutorshipClass>{};
-
-  //   for (final standard in tutorshipClasses) {
-  //     if (standard.standardId != null) {
-  //       uniqueStandards[standard.standardId!] = standard;
-  //     }
-  //   }
-
-  //   final standards = uniqueStandards.values.toList();
-
-  //   final validValue = standards.any(
-  //     (standard) => standard.standardId == selectedStandardId,
-  //   );
-
-  //   return DropdownButtonFormField<int>(
-  //     value: validValue ? selectedStandardId : null,
-  //     isExpanded: true,
-  //     icon: isLoading
-  //         ? const SizedBox(
-  //             width: 16,
-  //             height: 16,
-  //             child: CircularProgressIndicator(
-  //               strokeWidth: 2,
-  //               color: purpleColor,
-  //             ),
-  //           )
-  //         : const Icon(
-  //             Icons.keyboard_arrow_down_rounded,
-  //             color: purpleColor,
-  //             size: 21,
-  //           ),
-  //     dropdownColor: Colors.white,
-  //     borderRadius: BorderRadius.circular(12),
-  //     menuMaxHeight: 300,
-  //     hint: Text(
-  //       isLoading ? 'Loading...' : 'Standard',
-  //       style: const TextStyle(color: textColor, fontSize: 11),
-  //     ),
-  //     decoration: dropdownDecoration(),
-  //     items: standards.map((standard) {
-  //       return DropdownMenuItem<int>(
-  //         value: standard.standardId,
-  //         child: Text(
-  //           standard.standard ?? '',
-  //           overflow: TextOverflow.ellipsis,
-  //           style: const TextStyle(color: textColor, fontSize: 11),
-  //         ),
-  //       );
-  //     }).toList(),
-  //     onChanged: isLoading
-  //         ? null
-  //         : (value) {
-  //             if (value == null) return;
-
-  //             TutorshipClass? selectedItem;
-
-  //             for (final standard in standards) {
-  //               if (standard.standardId == value) {
-  //                 selectedItem = standard;
-  //                 break;
-  //               }
-  //             }
-
-  //             if (selectedItem == null) return;
-
-  //             setState(() {
-  //               selectedStandardId = selectedItem!.standardId;
-  //               selectedStandard = selectedItem.standard;
-
-  //               selectedDivisionId = null;
-  //               selectedDivision = null;
-
-  //               selectedSubjectId = null;
-  //               selectedSubject = null;
-  //             });
-  //           },
-  //   );
-  // }
-
-  // Widget buildDivisionDropdown({required bool isLoading}) {
-  //   final divisions = availableDivisions;
-
-  //   final validValue = divisions.any(
-  //     (division) => division.divisionId == selectedDivisionId,
-  //   );
-
-  //   return DropdownButtonFormField<int>(
-  //     value: validValue ? selectedDivisionId : null,
-  //     isExpanded: true,
-  //     icon: isLoading
-  //         ? const SizedBox(
-  //             width: 16,
-  //             height: 16,
-  //             child: CircularProgressIndicator(
-  //               strokeWidth: 2,
-  //               color: purpleColor,
-  //             ),
-  //           )
-  //         : const Icon(
-  //             Icons.keyboard_arrow_down_rounded,
-  //             color: purpleColor,
-  //             size: 21,
-  //           ),
-  //     dropdownColor: Colors.white,
-  //     borderRadius: BorderRadius.circular(12),
-  //     menuMaxHeight: 300,
-  //     hint: Text(
-  //       isLoading ? 'Loading...' : 'Division',
-  //       style: const TextStyle(color: textColor, fontSize: 11),
-  //     ),
-  //     decoration: dropdownDecoration(),
-  //     items: divisions.where((division) => division.divisionId != null).map((
-  //       division,
-  //     ) {
-  //       return DropdownMenuItem<int>(
-  //         value: division.divisionId,
-  //         child: Text(
-  //           division.division ?? '',
-  //           overflow: TextOverflow.ellipsis,
-  //           style: const TextStyle(color: textColor, fontSize: 11),
-  //         ),
-  //       );
-  //     }).toList(),
-  //     onChanged: isLoading
-  //         ? null
-  //         : (value) {
-  //             if (value == null) return;
-
-  //             DivisionDetails? selectedItem;
-
-  //             for (final division in divisions) {
-  //               if (division.divisionId == value) {
-  //                 selectedItem = division;
-  //                 break;
-  //               }
-  //             }
-
-  //             if (selectedItem == null) return;
-
-  //             setState(() {
-  //               selectedDivisionId = selectedItem!.divisionId;
-  //               selectedDivision = selectedItem.division;
-
-  //               selectedSubjectId = null;
-  //               selectedSubject = null;
-  //             });
-  //           },
-  //   );
-  // }
-
-  // Widget buildSubjectDropdown({required bool isLoading}) {
-  //   final subjects = availableSubjects;
-
-  //   final validValue = subjects.any(
-  //     (subject) => subject.subjectId == selectedSubjectId,
-  //   );
-
-  //   return DropdownButtonFormField<int>(
-  //     value: validValue ? selectedSubjectId : null,
-  //     isExpanded: true,
-  //     icon: isLoading
-  //         ? const SizedBox(
-  //             width: 16,
-  //             height: 16,
-  //             child: CircularProgressIndicator(
-  //               strokeWidth: 2,
-  //               color: purpleColor,
-  //             ),
-  //           )
-  //         : const Icon(
-  //             Icons.keyboard_arrow_down_rounded,
-  //             color: purpleColor,
-  //             size: 21,
-  //           ),
-  //     dropdownColor: Colors.white,
-  //     borderRadius: BorderRadius.circular(12),
-  //     menuMaxHeight: 300,
-  //     hint: Text(
-  //       isLoading ? 'Loading...' : 'Select Subject',
-  //       style: const TextStyle(color: textColor, fontSize: 11),
-  //     ),
-  //     decoration: dropdownDecoration(),
-  //     items: subjects.where((subject) => subject.subjectId != null).map((
-  //       subject,
-  //     ) {
-  //       return DropdownMenuItem<int>(
-  //         value: subject.subjectId,
-  //         child: Text(
-  //           subject.subject ?? '',
-  //           overflow: TextOverflow.ellipsis,
-  //           style: const TextStyle(color: textColor, fontSize: 11),
-  //         ),
-  //       );
-  //     }).toList(),
-  //     onChanged: isLoading
-  //         ? null
-  //         : (value) {
-  //             if (value == null) return;
-
-  //             SubjectDetails? selectedItem;
-
-  //             for (final subject in subjects) {
-  //               if (subject.subjectId == value) {
-  //                 selectedItem = subject;
-  //                 break;
-  //               }
-  //             }
-
-  //             if (selectedItem == null) return;
-
-  //             setState(() {
-  //               selectedSubjectId = selectedItem!.subjectId;
-  //               selectedSubject = selectedItem.subject;
-  //             });
-  //           },
-  //   );
-  // }
   Widget buildExamDropdown({required bool isLoading}) {
     final List<DropdownMenuItem<int>> items = exams
         .where((exam) => exam.examId != null)
@@ -2307,12 +2476,12 @@ class _SelectExamScreenState extends State<SelectExamScreen> {
         child: Row(
           children: [
             Expanded(
-              child:
-                  selectedItem?.child ??
-                  Text(
-                    isLoading ? 'Loading...' : 'Select Exam',
-                    style: const TextStyle(color: textColor, fontSize: 11),
-                  ),
+              child: dropdownLabel(
+                selectedItem: selectedItem,
+                selectedName: selectedExam,
+                hint: 'Select Exam',
+                isLoading: isLoading,
+              ),
             ),
             if (isLoading)
               const SizedBox(
@@ -2393,12 +2562,12 @@ class _SelectExamScreenState extends State<SelectExamScreen> {
         child: Row(
           children: [
             Expanded(
-              child:
-                  selectedItem?.child ??
-                  Text(
-                    isLoading ? 'Loading...' : 'Grade',
-                    style: const TextStyle(color: textColor, fontSize: 11),
-                  ),
+              child: dropdownLabel(
+                selectedItem: selectedItem,
+                selectedName: selectedGrade,
+                hint: 'Grade',
+                isLoading: isLoading,
+              ),
             ),
             if (isLoading)
               const SizedBox(
@@ -2422,11 +2591,19 @@ class _SelectExamScreenState extends State<SelectExamScreen> {
   }
 
   Widget buildStandardDropdown({required bool isLoading}) {
+    // Every standard in the branch, not just the teacher's own classes.
     final Map<int, TutorshipClass> uniqueStandards = {};
 
-    for (final TutorshipClass standard in tutorshipClasses) {
+    for (final TutorshipClass standard in standardList) {
       if (standard.standardId != null) {
         uniqueStandards[standard.standardId!] = standard;
+      }
+    }
+
+    // Keep the teacher's own classes even when the full list misses them.
+    for (final TutorshipClass standard in tutorshipClasses) {
+      if (standard.standardId != null) {
+        uniqueStandards.putIfAbsent(standard.standardId!, () => standard);
       }
     }
 
@@ -2465,39 +2642,19 @@ class _SelectExamScreenState extends State<SelectExamScreen> {
                 return;
               }
 
-              TutorshipClass? selectedItem;
-
-              for (final TutorshipClass standard in standards) {
-                if (standard.standardId == result.value) {
-                  selectedItem = standard;
-                  break;
-                }
-              }
-
-              if (selectedItem == null) return;
-
-              setState(() {
-                selectedStandardId = selectedItem!.standardId;
-                selectedStandard = selectedItem.standard;
-
-                selectedDivisionId = null;
-                selectedDivision = null;
-
-                selectedSubjectId = null;
-                selectedSubject = null;
-              });
+              selectStandard(result.value);
             },
       child: InputDecorator(
         decoration: dropdownDecoration(),
         child: Row(
           children: [
             Expanded(
-              child:
-                  selectedItem?.child ??
-                  Text(
-                    isLoading ? 'Loading...' : 'Standard',
-                    style: const TextStyle(color: textColor, fontSize: 11),
-                  ),
+              child: dropdownLabel(
+                selectedItem: selectedItem,
+                selectedName: selectedStandard,
+                hint: 'Standard',
+                isLoading: isLoading,
+              ),
             ),
             if (isLoading)
               const SizedBox(
@@ -2521,8 +2678,6 @@ class _SelectExamScreenState extends State<SelectExamScreen> {
   }
 
   Widget buildDivisionDropdown({required bool isLoading}) {
-    final List<DivisionDetails> divisions = availableDivisions;
-
     final List<DropdownMenuItem<int>> items = divisions
         .where((division) => division.divisionId != null)
         .map((division) {
@@ -2542,9 +2697,12 @@ class _SelectExamScreenState extends State<SelectExamScreen> {
       selectedDivisionId,
     );
 
+    final bool isEnabled =
+        !isLoading && items.isNotEmpty && selectedStandardId != null;
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: isLoading || items.isEmpty
+      onTap: !isEnabled
           ? null
           : () async {
               final PickerSelection<int>? result =
@@ -2559,36 +2717,19 @@ class _SelectExamScreenState extends State<SelectExamScreen> {
                 return;
               }
 
-              DivisionDetails? selectedItem;
-
-              for (final DivisionDetails division in divisions) {
-                if (division.divisionId == result.value) {
-                  selectedItem = division;
-                  break;
-                }
-              }
-
-              if (selectedItem == null) return;
-
-              setState(() {
-                selectedDivisionId = selectedItem!.divisionId;
-                selectedDivision = selectedItem.division;
-
-                selectedSubjectId = null;
-                selectedSubject = null;
-              });
+              selectDivision(result.value);
             },
       child: InputDecorator(
         decoration: dropdownDecoration(),
         child: Row(
           children: [
             Expanded(
-              child:
-                  selectedItem?.child ??
-                  Text(
-                    isLoading ? 'Loading...' : 'Division',
-                    style: const TextStyle(color: textColor, fontSize: 11),
-                  ),
+              child: dropdownLabel(
+                selectedItem: selectedItem,
+                selectedName: selectedDivision,
+                hint: 'Division',
+                isLoading: isLoading,
+              ),
             ),
             if (isLoading)
               const SizedBox(
@@ -2612,8 +2753,6 @@ class _SelectExamScreenState extends State<SelectExamScreen> {
   }
 
   Widget buildSubjectDropdown({required bool isLoading}) {
-    final List<SubjectDetails> subjects = availableSubjects;
-
     final List<DropdownMenuItem<int>> items = subjects
         .where((subject) => subject.subjectId != null)
         .map((subject) {
@@ -2633,9 +2772,12 @@ class _SelectExamScreenState extends State<SelectExamScreen> {
       selectedSubjectId,
     );
 
+    final bool isEnabled =
+        !isLoading && items.isNotEmpty && selectedDivisionId != null;
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: isLoading || items.isEmpty
+      onTap: !isEnabled
           ? null
           : () async {
               final PickerSelection<int>? result =
@@ -2650,33 +2792,19 @@ class _SelectExamScreenState extends State<SelectExamScreen> {
                 return;
               }
 
-              SubjectDetails? selectedItem;
-
-              for (final SubjectDetails subject in subjects) {
-                if (subject.subjectId == result.value) {
-                  selectedItem = subject;
-                  break;
-                }
-              }
-
-              if (selectedItem == null) return;
-
-              setState(() {
-                selectedSubjectId = selectedItem!.subjectId;
-                selectedSubject = selectedItem.subject;
-              });
+              selectSubject(result.value);
             },
       child: InputDecorator(
         decoration: dropdownDecoration(),
         child: Row(
           children: [
             Expanded(
-              child:
-                  selectedItem?.child ??
-                  Text(
-                    isLoading ? 'Loading...' : 'Select Subject',
-                    style: const TextStyle(color: textColor, fontSize: 11),
-                  ),
+              child: dropdownLabel(
+                selectedItem: selectedItem,
+                selectedName: selectedSubject,
+                hint: 'Select Subject',
+                isLoading: isLoading,
+              ),
             ),
             if (isLoading)
               const SizedBox(
@@ -2769,6 +2897,28 @@ class _SelectExamScreenState extends State<SelectExamScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  /// The selected option's own label, the stored name when that option is
+  /// not in the list (a class or exam the cache no longer carries, which
+  /// happens on edit), and the hint when nothing is selected.
+  Widget dropdownLabel({
+    required DropdownMenuItem<int>? selectedItem,
+    required String? selectedName,
+    required String hint,
+    required bool isLoading,
+  }) {
+    if (selectedItem != null) {
+      return selectedItem.child;
+    }
+
+    final String name = selectedName?.trim() ?? '';
+
+    return Text(
+      name.isNotEmpty ? name : (isLoading ? 'Loading...' : hint),
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(color: textColor, fontSize: 11),
     );
   }
 
