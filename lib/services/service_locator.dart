@@ -32,6 +32,16 @@ import 'package:cristalteacher/features/earlygoing/domain/repositories/gatepass_
 import 'package:cristalteacher/features/earlygoing/domain/usecases/fetch_gatepass_usecase.dart';
 import 'package:cristalteacher/features/earlygoing/domain/usecases/update_gatepass_usecase.dart';
 import 'package:cristalteacher/features/earlygoing/presentation/cubit/gatepass_cubit.dart';
+import 'package:cristalteacher/features/exam/data/datasources/exam_management_remote_data_source.dart';
+import 'package:cristalteacher/features/exam/data/repositories/exam_management_repository_impl.dart';
+import 'package:cristalteacher/features/exam/domain/repositories/exam_management_repository.dart';
+import 'package:cristalteacher/features/exam/domain/usecases/delete_exam_usecase.dart';
+import 'package:cristalteacher/features/exam/domain/usecases/fetch_examlist_usecase.dart';
+import 'package:cristalteacher/features/exam/domain/usecases/fetch_examterm_usecase.dart';
+import 'package:cristalteacher/features/exam/domain/usecases/fetch_examtype_usecase.dart';
+import 'package:cristalteacher/features/exam/domain/usecases/saveexam_usecase.dart';
+import 'package:cristalteacher/features/exam/domain/usecases/update_exam_usecase.dart';
+import 'package:cristalteacher/features/exam/presentation/cubit/exammanagement_cubit.dart';
 import 'package:cristalteacher/features/exams/data/datasources/exam_remote_data_source.dart';
 import 'package:cristalteacher/features/exams/data/repositories/exam_repository_impl.dart';
 import 'package:cristalteacher/features/exams/domain/repositories/exam_repository.dart';
@@ -275,5 +285,37 @@ Future<void> init() async {
 
   sl.registerLazySingleton<WorkPlanRemoteDataSource>(
     () => WorkPlanRemoteDataSourceImpl(),
+  );
+
+  /// ================= Exam Management =================
+
+  /// Cubit
+  sl.registerFactory(
+    () => ExamManagementCubit(
+      fetchExamListingUseCase: sl(),
+      getExamTypesUseCase: sl(),
+      getExamTermsUseCase: sl(),
+      saveExamUseCase: sl(),
+      deleteExamUseCase: sl(),
+      updateExamUseCase: sl(),
+    ),
+  );
+
+  /// Use Case
+  sl.registerLazySingleton(() => FetchExamListingUseCase(sl()));
+  sl.registerLazySingleton(() => GetExamTypesUseCase(sl()));
+  sl.registerLazySingleton(() => GetExamTermsUseCase(sl()));
+  sl.registerLazySingleton(() => SaveExamUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteExamUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateExamUseCase(sl()));
+
+  /// Repository
+  sl.registerLazySingleton<ExamManagementRepository>(
+    () => ExamManagementRepositoryImpl(sl()),
+  );
+
+  /// Remote Data Source
+  sl.registerLazySingleton<ExamManagementRemoteDataSource>(
+    () => ExamManagementRemoteDataSourceImpl(),
   );
 }

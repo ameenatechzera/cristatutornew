@@ -3,6 +3,7 @@ import 'package:cristalteacher/features/authentication/presentation/cubit/authen
 import 'package:cristalteacher/features/authentication/presentation/screens/splash_screen.dart';
 import 'package:cristalteacher/features/diary/presentation/cubit/diary_cubit.dart';
 import 'package:cristalteacher/features/earlygoing/presentation/cubit/gatepass_cubit.dart';
+import 'package:cristalteacher/features/exam/presentation/cubit/exammanagement_cubit.dart';
 import 'package:cristalteacher/features/exams/presentation/cubit/exam_cubit.dart';
 import 'package:cristalteacher/features/feed/presentation/cubit/feed_cubit.dart';
 import 'package:cristalteacher/features/materials/presentation/cubit/material_cubit.dart';
@@ -40,6 +41,9 @@ class MyApp extends StatelessWidget {
         BlocProvider<TimetableCubit>(create: (_) => sl<TimetableCubit>()),
         BlocProvider<GatepassCubit>(create: (_) => sl<GatepassCubit>()),
         BlocProvider<WorkplanCubit>(create: (_) => sl<WorkplanCubit>()),
+        BlocProvider<ExamManagementCubit>(
+          create: (_) => sl<ExamManagementCubit>(),
+        ),
       ],
       child: MaterialApp(
         localizationsDelegates: const [

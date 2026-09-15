@@ -1,4 +1,5 @@
 import 'package:cristalteacher/core/appdata/appdata.dart';
+import 'package:cristalteacher/features/attendance/presentation/screens/attendance_report_new.dart';
 import 'package:cristalteacher/features/attendance/presentation/screens/attendance_report_screen.dart';
 import 'package:cristalteacher/features/authentication/domain/entities/class_details_entity.dart';
 import 'package:cristalteacher/features/authentication/domain/entities/teacher_dashboard_result.dart';
@@ -7,10 +8,12 @@ import 'package:cristalteacher/features/authentication/domain/parameters/fetch_t
 import 'package:cristalteacher/features/authentication/presentation/cubit/authentication_cubit.dart';
 import 'package:cristalteacher/features/diary/presentation/screens/diary_screen.dart';
 import 'package:cristalteacher/features/earlygoing/presentation/screens/gatepass_screen.dart';
+import 'package:cristalteacher/features/exam/presentation/screens/exam_listing_screen.dart';
 import 'package:cristalteacher/features/exams/presentation/screens/exam_screen.dart';
 import 'package:cristalteacher/features/feed/presentation/screens/feed_screen.dart';
 import 'package:cristalteacher/features/materials/presentation/screens/materials_screen.dart';
 import 'package:cristalteacher/features/timetable/presentation/screens/timetable_screen.dart';
+import 'package:cristalteacher/features/tutorprofile/presentation/screens/tutor_profile_screen.dart';
 import 'package:cristalteacher/features/workplan/presentation/screens/workplan_detials_screen.dart';
 import 'package:cristalteacher/services/shared_preference_helper.dart';
 import 'package:flutter/material.dart';
@@ -277,7 +280,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                             ),
                             _QuickAccessItem(
                               imagePath: 'assets/images/exam.png',
-                              label: 'Exam',
+                              label: 'MarkEntry',
                             ),
                             _QuickAccessItem(
                               imagePath: 'assets/images/timetable.png',
@@ -290,6 +293,10 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                             _QuickAccessItem(
                               imagePath: 'assets/images/workplan.png',
                               label: 'Work Plan',
+                            ),
+                            _QuickAccessItem(
+                              imagePath: 'assets/images/exam.png',
+                              label: 'Exam',
                             ),
                           ],
                         ),
@@ -309,55 +316,69 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
 class _ProfileRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          // Outer white ring
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.12),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Container(
-            // Inner white ring (creates the "layered" double-ring look)
-            padding: const EdgeInsets.all(2),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-            child: const CircleAvatar(
-              radius: 20,
-              backgroundColor: Colors.white,
-              backgroundImage: AssetImage('assets/images/defaultstudent.png'),
-            ),
-          ),
-        ),
-        const SizedBox(width: 14),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const TeacherProfileScreen()),
+        );
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        child: Row(
           children: [
-            Text(
-              AppData.teacherName!,
-              style: TextStyle(
+            Container(
+              // Outer white ring
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
                 color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.12),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Container(
+                // Inner white ring (creates the "layered" double-ring look)
+                padding: const EdgeInsets.all(2),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: const CircleAvatar(
+                  radius: 20,
+                  backgroundColor: Colors.white,
+                  backgroundImage: AssetImage(
+                    'assets/images/defaultstudent.png',
+                  ),
+                ),
               ),
             ),
-            Text(
-              AppData.teacherSubject!,
-              style: TextStyle(color: Colors.white, fontSize: 13),
+            const SizedBox(width: 14),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  AppData.teacherName!,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  AppData.teacherSubject!,
+                  style: TextStyle(color: Colors.white, fontSize: 13),
+                ),
+              ],
             ),
           ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -893,9 +914,11 @@ class _QuickAccessItem extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => AttendanceReportScreen()),
+                //AttendanceDemoApp()),
+                //AttendanceReportScreen()),
               );
             }
-            if (label == 'Exam') {
+            if (label == 'MarkEntry') {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => ExamScreen()),
@@ -917,6 +940,12 @@ class _QuickAccessItem extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => WorkplanDetialsScreen()),
+              );
+            }
+            if (label == 'Exam') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ExamListingScreen()),
               );
             }
           },

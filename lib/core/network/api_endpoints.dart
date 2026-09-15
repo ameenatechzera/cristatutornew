@@ -140,4 +140,38 @@ class ApiConstants {
   static String getUpdateDiaryPath(String baseUrl) {
     return '${baseUrl}update-classdiary';
   }
+
+  /// Returns examlisting
+  static String getExamListingPath(String baseUrl) {
+    return '${baseUrl}get-allexams/1';
+  }
+
+  /// Returns exam types URL.
+  static String getExamTypesPath(String baseUrl, int branchId) {
+    final String normalizedBaseUrl = baseUrl.endsWith('/')
+        ? baseUrl
+        : '$baseUrl/';
+
+    return '${normalizedBaseUrl}ExamTypes/$branchId';
+  }
+
+  /// Returns examtermslisting
+  static String getExamTermsPath(String baseUrl) {
+    return '${baseUrl}ExamTerms/1';
+  }
+
+  /// saveexam
+  static String saveExamPath(String baseUrl) {
+    return '${baseUrl}save-exam';
+  }
+
+  /// Delete exam
+  static String deleteExamPath(String baseUrl, int examId) {
+    return '${baseUrl}delete-exam/$examId';
+  }
+
+  /// Update exam
+  static String updateExamPath(String baseUrl, int examId) {
+    return '${baseUrl}update-exam/$examId';
+  }
 }

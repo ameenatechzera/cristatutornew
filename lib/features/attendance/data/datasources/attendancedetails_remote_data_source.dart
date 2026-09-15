@@ -196,6 +196,68 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   //     rethrow;
   //   }
   // }
+  // @override
+  // Future<AttendanceReportResponseModel> fetchAttendanceReport(
+  //   AttendanceReportParameter params,
+  // ) async {
+  //   print('📘 Attendance Report Called');
+
+  //   try {
+  //     /// Base URL
+  //     final baseUrl = await SharedPreferenceHelper().getBaseUrl();
+
+  //     if (baseUrl == null || baseUrl.isEmpty) {
+  //       throw Exception("Base URL not set");
+  //     }
+
+  //     /// API URL
+  //     final url = ApiConstants.getAttendanceReportPath(baseUrl);
+
+  //     print("📘 URL : $url");
+
+  //     /// Request
+  //     print("📘 Attendance Request: ${params.toJson()}");
+
+  //     /// Headers
+  //     final options = await ApiHelper.getAuthOptions(withToken: true);
+
+  //     /// API Call
+  //     final response = await dio.post(
+  //       url,
+  //       data: params.toJson(), // ⭐ THIS WAS MISSING
+  //       options: options,
+  //     );
+
+  //     print('📘 Status Code: ${response.statusCode}');
+
+  //     final responseString = jsonEncode(response.data);
+
+  //     const chunkSize = 800;
+
+  //     for (int i = 0; i < responseString.length; i += chunkSize) {
+  //       print(
+  //         responseString.substring(
+  //           i,
+  //           i + chunkSize > responseString.length
+  //               ? responseString.length
+  //               : i + chunkSize,
+  //         ),
+  //       );
+  //     }
+
+  //     if (response.statusCode == 200 || response.statusCode == 201) {
+  //       return AttendanceReportResponseModel.fromJson(response.data);
+  //     } else {
+  //       throw ServerException(
+  //         errorMessageModel: ErrorMessageModel.fromJson(response.data),
+  //       );
+  //     }
+  //   } catch (e, stacktrace) {
+  //     print('❌ Exception in fetchAttendanceReport: $e');
+  //     print(stacktrace);
+  //     rethrow;
+  //   }
+  // }
   @override
   Future<AttendanceReportResponseModel> fetchAttendanceReport(
     AttendanceReportParameter params,
@@ -224,7 +286,7 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
       /// API Call
       final response = await dio.post(
         url,
-        data: params.toJson(), // ⭐ THIS WAS MISSING
+        data: params.toJson(),
         options: options,
       );
 
@@ -252,9 +314,42 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
           errorMessageModel: ErrorMessageModel.fromJson(response.data),
         );
       }
-    } catch (e, stacktrace) {
-      print('❌ Exception in fetchAttendanceReport: $e');
+    } on DioException catch (e, stacktrace) {
+      print('');
+      print('==========================================');
+      print('❌ ATTENDANCE REPORT DIO ERROR');
+      print('==========================================');
+      print('Message       : ${e.message}');
+      print('Status Code   : ${e.response?.statusCode}');
+      print('URL           : ${e.requestOptions.uri}');
+      print('Request Data  : ${e.requestOptions.data}');
+      print('Response Data : ${e.response?.data}');
+      print('==========================================');
+
+      print('📋 REQUEST BODY');
+      print('------------------------------------------');
+      print(jsonEncode(e.requestOptions.data));
+
+      print('📋 SERVER RESPONSE');
+      print('------------------------------------------');
+      print(jsonEncode(e.response?.data));
+
+      print('==========================================');
+      print('📍 STACK TRACE');
+      print('==========================================');
       print(stacktrace);
+      print('==========================================');
+
+      rethrow;
+    } catch (e, stacktrace) {
+      print('');
+      print('==========================================');
+      print('❌ EXCEPTION IN FETCH ATTENDANCE REPORT');
+      print('==========================================');
+      print('Error: $e');
+      print('StackTrace: $stacktrace');
+      print('==========================================');
+
       rethrow;
     }
   }

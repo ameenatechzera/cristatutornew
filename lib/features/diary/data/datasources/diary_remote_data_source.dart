@@ -12,6 +12,7 @@ import 'package:cristalteacher/features/diary/domain/parameters/save_diary_param
 import 'package:cristalteacher/features/diary/domain/parameters/update_diary_parameter.dart';
 import 'package:cristalteacher/services/shared_preference_helper.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 
 abstract class DiaryRemoteDataSource {
   Future<DiaryResponseModel> fetchDiary(FetchDiaryParameter request);
@@ -190,316 +191,656 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
     }
   }
 
+  // @override
+  // Future<MasterResponseModel> saveDiary(SaveDiaryParameter params) async {
+  //   print('');
+  //   print('==========================================');
+  //   print('🟢 SAVE DIARY START');
+  //   print('==========================================');
+
+  //   try {
+  //     final pref = SharedPreferenceHelper();
+
+  //     final baseUrl = await pref.getBaseUrl();
+  //     final dbName = await pref.getDatabaseName();
+  //     final token = await pref.getToken() ?? '';
+
+  //     if (baseUrl == null || baseUrl.isEmpty) {
+  //       throw Exception('Base URL not set');
+  //     }
+
+  //     if (token.isEmpty) {
+  //       throw Exception('Token missing! Please login again.');
+  //     }
+
+  //     final url = ApiConstants.getSaveDiaryPath(baseUrl);
+
+  //     print('🟢 Base URL: $baseUrl');
+  //     print('🟢 DB Name: $dbName');
+  //     print('🟢 API URL: $url');
+
+  //     // ============================================================
+  //     // NORMAL FIELDS
+  //     // ============================================================
+
+  //     final Map<String, dynamic> data = {
+  //       'AccYear': params.accYear,
+  //       'StandardId': params.standardId,
+  //       'DivisionId': params.divisionId,
+  //       'SubjectId': params.subjectId,
+  //       'EmployeeId': params.employeeId,
+  //       'diaryType': params.diaryType,
+  //       'diaryTitle': params.diaryTitle,
+  //       'Description': params.description,
+  //       'diaryDate': params.diaryDate,
+  //       'dueDate': params.dueDate,
+  //       'isActive': params.isActive,
+  //       'isFavourite': params.isFavourite,
+  //       'branchId': params.branchId,
+  //       'CreatedUser': params.createdUser,
+  //       'videoUrl': params.videoUrl,
+  //     };
+
+  //     print('🟢 ===== FORM FIELDS =====');
+
+  //     data.forEach((key, value) {
+  //       print('$key : $value');
+  //     });
+
+  //     // ============================================================
+  //     // FORMDATA
+  //     // ============================================================
+
+  //     final formData = FormData.fromMap(data);
+
+  //     // ============================================================
+  //     // FILES
+  //     // ============================================================
+
+  //     print('');
+  //     print('==========================================');
+  //     print('🟡 PROCESSING FILES');
+  //     print('==========================================');
+
+  //     print('🟡 Files Found: ${params.files.length}');
+
+  //     for (int i = 0; i < params.files.length; i++) {
+  //       final fileString = params.files[i];
+
+  //       if (fileString.isEmpty) {
+  //         print('⚠️ File ${i + 1} is empty. Skipping.');
+  //         continue;
+  //       }
+
+  //       print('');
+  //       print('------------------------------------------');
+  //       print('🟡 Processing File ${i + 1}');
+  //       print('------------------------------------------');
+
+  //       print('🟡 File Length: ${fileString.length}');
+
+  //       String base64String = fileString;
+
+  //       // DO NOT default to jpg
+  //       String fileName = 'diary_file_${i + 1}';
+
+  //       String? contentType;
+
+  //       // ==========================================================
+  //       // DATA URI
+  //       // ==========================================================
+
+  //       if (fileString.startsWith('data:')) {
+  //         final commaIndex = fileString.indexOf(',');
+
+  //         if (commaIndex == -1) {
+  //           throw Exception('Invalid Base64 file format for file ${i + 1}');
+  //         }
+
+  //         final header = fileString.substring(0, commaIndex);
+
+  //         base64String = fileString.substring(commaIndex + 1);
+
+  //         print('🟡 File Header: $header');
+
+  //         // ========================================================
+  //         // IMAGES
+  //         // ========================================================
+
+  //         if (header.contains('image/jpeg')) {
+  //           fileName = 'diary_file_${i + 1}.jpg';
+  //           contentType = 'image/jpeg';
+  //         } else if (header.contains('image/png')) {
+  //           fileName = 'diary_file_${i + 1}.png';
+  //           contentType = 'image/png';
+  //         } else if (header.contains('image/webp')) {
+  //           fileName = 'diary_file_${i + 1}.webp';
+  //           contentType = 'image/webp';
+  //         }
+  //         // ========================================================
+  //         // AUDIO
+  //         // ========================================================
+  //         else if (header.contains('audio/mpeg')) {
+  //           fileName = 'diary_file_${i + 1}.mp3';
+  //           contentType = 'audio/mpeg';
+  //         } else if (header.contains('audio/mp3')) {
+  //           fileName = 'diary_file_${i + 1}.mp3';
+  //           contentType = 'audio/mpeg';
+  //         } else if (header.contains('audio/mp4')) {
+  //           fileName = 'diary_file_${i + 1}.m4a';
+  //           contentType = 'audio/mp4';
+  //         } else if (header.contains('audio/x-m4a')) {
+  //           fileName = 'diary_file_${i + 1}.m4a';
+  //           contentType = 'audio/x-m4a';
+  //         } else if (header.contains('audio/wav')) {
+  //           fileName = 'diary_file_${i + 1}.wav';
+  //           contentType = 'audio/wav';
+  //         } else if (header.contains('audio/x-wav')) {
+  //           fileName = 'diary_file_${i + 1}.wav';
+  //           contentType = 'audio/wav';
+  //         } else if (header.contains('audio/aac')) {
+  //           fileName = 'diary_file_${i + 1}.aac';
+  //           contentType = 'audio/aac';
+  //         } else if (header.contains('audio/ogg')) {
+  //           fileName = 'diary_file_${i + 1}.ogg';
+  //           contentType = 'audio/ogg';
+  //         } else if (header.contains('audio/amr')) {
+  //           fileName = 'diary_file_${i + 1}.amr';
+  //           contentType = 'audio/amr';
+  //         } else {
+  //           throw Exception(
+  //             'Unsupported file type.\n'
+  //             'File: ${i + 1}\n'
+  //             'Header: $header',
+  //           );
+  //         }
+  //       } else {
+  //         print('⚠️ No DATA URI header found.');
+
+  //         print(
+  //           '⚠️ The Base64 does not contain '
+  //           'the file type information.',
+  //         );
+
+  //         // We don't assume JPG anymore.
+  //         //
+  //         // If the recorder sends raw Base64 without
+  //         // "data:audio/...", the actual file type must
+  //         // be supplied by the code creating params.files.
+  //       }
+
+  //       // ==========================================================
+  //       // BASE64 → BYTES
+  //       // ==========================================================
+
+  //       final bytes = base64Decode(base64String);
+
+  //       print('🟢 Decoded Bytes: ${bytes.length}');
+  //       print('🟢 File Name: $fileName');
+  //       print('🟢 Content Type: $contentType');
+
+  //       // ==========================================================
+  //       // ADD FILE TO FORMDATA
+  //       // ==========================================================
+
+  //       formData.files.add(
+  //         MapEntry(
+  //           'files[]',
+  //           MultipartFile.fromBytes(
+  //             bytes,
+  //             filename: fileName,
+  //             // contentType: contentType != null
+  //             //     ? MediaType.parse(contentType)
+  //             //     : null,
+  //           ),
+  //         ),
+  //       );
+
+  //       print('🟢 File added successfully');
+  //     }
+
+  //     // ============================================================
+  //     // DEBUG FORMDATA
+  //     // ============================================================
+
+  //     print('');
+  //     print('==========================================');
+  //     print('🟢 FORMDATA FIELDS');
+  //     print('==========================================');
+
+  //     for (final field in formData.fields) {
+  //       print('${field.key} : ${field.value}');
+  //     }
+
+  //     print('');
+  //     print('==========================================');
+  //     print('🟡 FORMDATA FILES');
+  //     print('==========================================');
+
+  //     for (final file in formData.files) {
+  //       print(
+  //         'Key: ${file.key} | '
+  //         'Filename: ${file.value.filename} | '
+  //         'ContentType: ${file.value.contentType}',
+  //       );
+  //     }
+
+  //     // ============================================================
+  //     // API OPTIONS
+  //     // ============================================================
+
+  //     final options = Options(
+  //       contentType: 'multipart/form-data',
+  //       headers: {
+  //         'Accept': 'application/json',
+  //         'Authorization': 'Bearer $token',
+  //         'X-Database-Name': dbName,
+  //       },
+  //     );
+
+  //     // ============================================================
+  //     // API CALL
+  //     // ============================================================
+
+  //     print('');
+  //     print('==========================================');
+  //     print('🟢 CALLING SAVE DIARY API');
+  //     print('==========================================');
+
+  //     final response = await dio.post(url, data: formData, options: options);
+
+  //     // ============================================================
+  //     // RESPONSE
+  //     // ============================================================
+
+  //     print('');
+  //     print('==========================================');
+  //     print('🟢 SAVE DIARY RESPONSE');
+  //     print('==========================================');
+
+  //     print('Status Code: ${response.statusCode}');
+  //     print('Response Data: ${response.data}');
+
+  //     print('==========================================');
+
+  //     if (response.statusCode == 200 || response.statusCode == 201) {
+  //       return MasterResponseModel.fromJson(response.data);
+  //     }
+
+  //     throw ServerException(
+  //       errorMessageModel: ErrorMessageModel.fromJson(response.data),
+  //     );
+  //   } on DioException catch (e, stackTrace) {
+  //     print('');
+  //     print('==========================================');
+  //     print('❌ DIO ERROR');
+  //     print('==========================================');
+
+  //     print('Message : ${e.message}');
+  //     print('Status  : ${e.response?.statusCode}');
+  //     print('Response: ${e.response?.data}');
+  //     print('URL     : ${e.requestOptions.uri}');
+
+  //     print('==========================================');
+  //     print(stackTrace);
+
+  //     if (e.response?.data is Map<String, dynamic>) {
+  //       throw ServerException(
+  //         errorMessageModel: ErrorMessageModel.fromJson(e.response!.data),
+  //       );
+  //     }
+
+  //     rethrow;
+  //   } catch (e, stackTrace) {
+  //     print('');
+  //     print('==========================================');
+  //     print('❌ ERROR IN SAVE DIARY');
+  //     print('==========================================');
+
+  //     print(e);
+  //     print(stackTrace);
+
+  //     print('==========================================');
+
+  //     rethrow;
+  //   }
+  // }
   @override
   Future<MasterResponseModel> saveDiary(SaveDiaryParameter params) async {
-    print('');
-    print('==========================================');
-    print('🟢 SAVE DIARY START');
-    print('==========================================');
+    debugPrint('');
+    debugPrint('==========================================');
+    debugPrint('🟢 SAVE DIARY START');
+    debugPrint('==========================================');
 
     try {
-      final pref = SharedPreferenceHelper();
+      final SharedPreferenceHelper preference = SharedPreferenceHelper();
 
-      final baseUrl = await pref.getBaseUrl();
-      final dbName = await pref.getDatabaseName();
-      final token = await pref.getToken() ?? '';
+      final String? baseUrl = await preference.getBaseUrl();
+      final String? databaseName = await preference.getDatabaseName();
+      final String? token = await preference.getToken();
 
-      if (baseUrl == null || baseUrl.isEmpty) {
+      if (baseUrl == null || baseUrl.trim().isEmpty) {
         throw Exception('Base URL not set');
       }
 
-      if (token.isEmpty) {
+      if (token == null || token.trim().isEmpty) {
         throw Exception('Token missing! Please login again.');
       }
 
-      final url = ApiConstants.getSaveDiaryPath(baseUrl);
+      if (params.standardId.isEmpty) {
+        throw Exception('Please select at least one class');
+      }
 
-      print('🟢 Base URL: $baseUrl');
-      print('🟢 DB Name: $dbName');
-      print('🟢 API URL: $url');
+      final String url = ApiConstants.getSaveDiaryPath(baseUrl);
 
-      // ============================================================
-      // NORMAL FIELDS
-      // ============================================================
+      debugPrint('🟢 Base URL: $baseUrl');
+      debugPrint('🟢 DB Name: $databaseName');
+      debugPrint('🟢 API URL: $url');
 
-      final Map<String, dynamic> data = {
-        'AccYear': params.accYear,
-        'StandardId': params.standardId,
-        'DivisionId': params.divisionId,
-        'SubjectId': params.subjectId,
-        'EmployeeId': params.employeeId,
-        'diaryType': params.diaryType,
-        'diaryTitle': params.diaryTitle,
-        'Description': params.description,
-        'diaryDate': params.diaryDate,
-        'dueDate': params.dueDate,
-        'isActive': params.isActive,
-        'isFavourite': params.isFavourite,
-        'branchId': params.branchId,
-        'CreatedUser': params.createdUser,
-        'videoUrl': params.videoUrl,
-      };
+      /*
+     * Convert selected classes to:
+     *
+     * [
+     *   {"StandardId":1,"DivisionId":1},
+     *   {"StandardId":2,"DivisionId":3}
+     * ]
+     */
+      final String standardDivisionJson = jsonEncode(
+        params.standardId
+            .map((DiaryStandardDivisionParameter item) => item.toJson())
+            .toList(),
+      );
 
-      print('🟢 ===== FORM FIELDS =====');
+      final FormData formData = FormData();
 
-      data.forEach((key, value) {
-        print('$key : $value');
-      });
+      formData.fields.addAll([
+        MapEntry('AccYear', params.accYear),
+        MapEntry('StandardId', standardDivisionJson),
+        MapEntry('SubjectId', params.subjectId.toString()),
+        MapEntry('EmployeeId', params.employeeId.toString()),
+        MapEntry('diaryType', params.diaryType),
+        MapEntry('diaryTitle', params.diaryTitle),
+        MapEntry('Description', params.description),
+        MapEntry('diaryDate', params.diaryDate),
+        MapEntry('dueDate', params.dueDate),
+        MapEntry('isActive', params.isActive.toString()),
+        MapEntry('isFavourite', params.isFavourite.toString()),
+        MapEntry('branchId', params.branchId.toString()),
+        MapEntry('CreatedUser', params.createdUser.toString()),
+        MapEntry('videoUrl', params.videoUrl),
+      ]);
 
-      // ============================================================
-      // FORMDATA
-      // ============================================================
+      debugPrint('');
+      debugPrint('==========================================');
+      debugPrint('🟢 FORM FIELDS');
+      debugPrint('==========================================');
 
-      final formData = FormData.fromMap(data);
+      for (final MapEntry<String, String> field in formData.fields) {
+        debugPrint('${field.key}: ${field.value}');
+      }
 
-      // ============================================================
-      // FILES
-      // ============================================================
+      debugPrint('');
+      debugPrint('==========================================');
+      debugPrint('🟡 PROCESSING FILES');
+      debugPrint('==========================================');
+      debugPrint('🟡 Files Found: ${params.files.length}');
 
-      print('');
-      print('==========================================');
-      print('🟡 PROCESSING FILES');
-      print('==========================================');
-
-      print('🟡 Files Found: ${params.files.length}');
-
-      for (int i = 0; i < params.files.length; i++) {
-        final fileString = params.files[i];
+      for (int index = 0; index < params.files.length; index++) {
+        final String fileString = params.files[index].trim();
 
         if (fileString.isEmpty) {
-          print('⚠️ File ${i + 1} is empty. Skipping.');
+          debugPrint('⚠️ File ${index + 1} is empty. Skipping.');
           continue;
         }
 
-        print('');
-        print('------------------------------------------');
-        print('🟡 Processing File ${i + 1}');
-        print('------------------------------------------');
+        debugPrint('');
+        debugPrint('------------------------------------------');
+        debugPrint('🟡 Processing File ${index + 1}');
+        debugPrint('------------------------------------------');
+        debugPrint('🟡 File String Length: ${fileString.length}');
 
-        print('🟡 File Length: ${fileString.length}');
+        String base64String;
+        String fileName;
+        String detectedContentType;
 
-        String base64String = fileString;
-
-        // DO NOT default to jpg
-        String fileName = 'diary_file_${i + 1}';
-
-        String? contentType;
-
-        // ==========================================================
-        // DATA URI
-        // ==========================================================
-
-        if (fileString.startsWith('data:')) {
-          final commaIndex = fileString.indexOf(',');
-
-          if (commaIndex == -1) {
-            throw Exception('Invalid Base64 file format for file ${i + 1}');
-          }
-
-          final header = fileString.substring(0, commaIndex);
-
-          base64String = fileString.substring(commaIndex + 1);
-
-          print('🟡 File Header: $header');
-
-          // ========================================================
-          // IMAGES
-          // ========================================================
-
-          if (header.contains('image/jpeg')) {
-            fileName = 'diary_file_${i + 1}.jpg';
-            contentType = 'image/jpeg';
-          } else if (header.contains('image/png')) {
-            fileName = 'diary_file_${i + 1}.png';
-            contentType = 'image/png';
-          } else if (header.contains('image/webp')) {
-            fileName = 'diary_file_${i + 1}.webp';
-            contentType = 'image/webp';
-          }
-          // ========================================================
-          // AUDIO
-          // ========================================================
-          else if (header.contains('audio/mpeg')) {
-            fileName = 'diary_file_${i + 1}.mp3';
-            contentType = 'audio/mpeg';
-          } else if (header.contains('audio/mp3')) {
-            fileName = 'diary_file_${i + 1}.mp3';
-            contentType = 'audio/mpeg';
-          } else if (header.contains('audio/mp4')) {
-            fileName = 'diary_file_${i + 1}.m4a';
-            contentType = 'audio/mp4';
-          } else if (header.contains('audio/x-m4a')) {
-            fileName = 'diary_file_${i + 1}.m4a';
-            contentType = 'audio/x-m4a';
-          } else if (header.contains('audio/wav')) {
-            fileName = 'diary_file_${i + 1}.wav';
-            contentType = 'audio/wav';
-          } else if (header.contains('audio/x-wav')) {
-            fileName = 'diary_file_${i + 1}.wav';
-            contentType = 'audio/wav';
-          } else if (header.contains('audio/aac')) {
-            fileName = 'diary_file_${i + 1}.aac';
-            contentType = 'audio/aac';
-          } else if (header.contains('audio/ogg')) {
-            fileName = 'diary_file_${i + 1}.ogg';
-            contentType = 'audio/ogg';
-          } else if (header.contains('audio/amr')) {
-            fileName = 'diary_file_${i + 1}.amr';
-            contentType = 'audio/amr';
-          } else {
-            throw Exception(
-              'Unsupported file type.\n'
-              'File: ${i + 1}\n'
-              'Header: $header',
-            );
-          }
-        } else {
-          print('⚠️ No DATA URI header found.');
-
-          print(
-            '⚠️ The Base64 does not contain '
-            'the file type information.',
+        if (!fileString.startsWith('data:')) {
+          throw Exception(
+            'File ${index + 1} does not contain its file type. '
+            'The file must use a data URI such as '
+            'data:image/jpeg;base64,...',
           );
-
-          // We don't assume JPG anymore.
-          //
-          // If the recorder sends raw Base64 without
-          // "data:audio/...", the actual file type must
-          // be supplied by the code creating params.files.
         }
 
-        // ==========================================================
-        // BASE64 → BYTES
-        // ==========================================================
+        final int commaIndex = fileString.indexOf(',');
 
-        final bytes = base64Decode(base64String);
+        if (commaIndex == -1) {
+          throw Exception('Invalid Base64 format for file ${index + 1}');
+        }
 
-        print('🟢 Decoded Bytes: ${bytes.length}');
-        print('🟢 File Name: $fileName');
-        print('🟢 Content Type: $contentType');
+        final String header = fileString.substring(0, commaIndex);
 
-        // ==========================================================
-        // ADD FILE TO FORMDATA
-        // ==========================================================
+        base64String = fileString.substring(commaIndex + 1);
+
+        debugPrint('🟡 File Header: $header');
+
+        if (!header.contains(';base64')) {
+          throw Exception('File ${index + 1} is not Base64 encoded');
+        }
+
+        if (header.contains('image/jpeg')) {
+          fileName = 'diary_file_${index + 1}.jpg';
+          detectedContentType = 'image/jpeg';
+        } else if (header.contains('image/png')) {
+          fileName = 'diary_file_${index + 1}.png';
+          detectedContentType = 'image/png';
+        } else if (header.contains('image/webp')) {
+          fileName = 'diary_file_${index + 1}.webp';
+          detectedContentType = 'image/webp';
+        } else if (header.contains('audio/mpeg') ||
+            header.contains('audio/mp3')) {
+          fileName = 'diary_file_${index + 1}.mp3';
+          detectedContentType = 'audio/mpeg';
+        } else if (header.contains('audio/mp4') ||
+            header.contains('audio/x-m4a')) {
+          fileName = 'diary_file_${index + 1}.m4a';
+          detectedContentType = 'audio/mp4';
+        } else if (header.contains('audio/wav') ||
+            header.contains('audio/x-wav')) {
+          fileName = 'diary_file_${index + 1}.wav';
+          detectedContentType = 'audio/wav';
+        } else if (header.contains('audio/aac')) {
+          fileName = 'diary_file_${index + 1}.aac';
+          detectedContentType = 'audio/aac';
+        } else if (header.contains('audio/ogg')) {
+          fileName = 'diary_file_${index + 1}.ogg';
+          detectedContentType = 'audio/ogg';
+        } else if (header.contains('audio/amr')) {
+          fileName = 'diary_file_${index + 1}.amr';
+          detectedContentType = 'audio/amr';
+        } else if (header.contains('application/pdf')) {
+          fileName = 'diary_file_${index + 1}.pdf';
+          detectedContentType = 'application/pdf';
+        } else if (header.contains('application/msword')) {
+          fileName = 'diary_file_${index + 1}.doc';
+          detectedContentType = 'application/msword';
+        } else if (header.contains(
+          'application/vnd.openxmlformats-officedocument'
+          '.wordprocessingml.document',
+        )) {
+          fileName = 'diary_file_${index + 1}.docx';
+          detectedContentType =
+              'application/vnd.openxmlformats-officedocument'
+              '.wordprocessingml.document';
+        } else {
+          throw Exception(
+            'Unsupported file type for file ${index + 1}: '
+            '$header',
+          );
+        }
+
+        List<int> bytes;
+
+        try {
+          bytes = base64Decode(base64String.replaceAll(RegExp(r'\s'), ''));
+        } on FormatException {
+          throw Exception('Invalid Base64 content in file ${index + 1}');
+        }
+
+        if (bytes.isEmpty) {
+          throw Exception('File ${index + 1} contains no data');
+        }
+
+        debugPrint('🟢 Decoded Bytes: ${bytes.length}');
+        debugPrint('🟢 File Name: $fileName');
+        debugPrint('🟢 Content Type: $detectedContentType');
 
         formData.files.add(
           MapEntry(
             'files[]',
-            MultipartFile.fromBytes(
-              bytes,
-              filename: fileName,
-              // contentType: contentType != null
-              //     ? MediaType.parse(contentType)
-              //     : null,
-            ),
+            MultipartFile.fromBytes(bytes, filename: fileName),
           ),
         );
 
-        print('🟢 File added successfully');
+        debugPrint('🟢 File ${index + 1} added successfully');
       }
 
-      // ============================================================
-      // DEBUG FORMDATA
-      // ============================================================
+      debugPrint('');
+      debugPrint('==========================================');
+      debugPrint('🟢 FINAL FORMDATA FIELDS');
+      debugPrint('==========================================');
 
-      print('');
-      print('==========================================');
-      print('🟢 FORMDATA FIELDS');
-      print('==========================================');
-
-      for (final field in formData.fields) {
-        print('${field.key} : ${field.value}');
+      for (final MapEntry<String, String> field in formData.fields) {
+        debugPrint('${field.key}: ${field.value}');
       }
 
-      print('');
-      print('==========================================');
-      print('🟡 FORMDATA FILES');
-      print('==========================================');
+      debugPrint('');
+      debugPrint('==========================================');
+      debugPrint('🟡 FINAL FORMDATA FILES');
+      debugPrint('==========================================');
 
-      for (final file in formData.files) {
-        print(
+      if (formData.files.isEmpty) {
+        debugPrint('ℹ️ No diary files added');
+      }
+
+      for (final MapEntry<String, MultipartFile> file in formData.files) {
+        debugPrint(
           'Key: ${file.key} | '
           'Filename: ${file.value.filename} | '
+          'Length: ${file.value.length} | '
           'ContentType: ${file.value.contentType}',
         );
       }
 
-      // ============================================================
-      // API OPTIONS
-      // ============================================================
+      final Map<String, dynamic> headers = {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
 
-      final options = Options(
-        contentType: 'multipart/form-data',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-          'X-Database-Name': dbName,
+      if (databaseName != null && databaseName.trim().isNotEmpty) {
+        headers['X-Database-Name'] = databaseName;
+      }
+
+      final Options options = Options(headers: headers);
+
+      // Let Dio generate the multipart content type and boundary.
+      options.contentType = null;
+      options.headers?.remove('Content-Type');
+      options.headers?.remove('content-type');
+
+      debugPrint('');
+      debugPrint('==========================================');
+      debugPrint('🟢 CALLING SAVE DIARY API');
+      debugPrint('==========================================');
+
+      final Response<dynamic> response = await dio.post<dynamic>(
+        url,
+        data: formData,
+        options: options,
+        onSendProgress: (int sent, int total) {
+          if (total <= 0) return;
+
+          final double percentage = (sent / total) * 100;
+
+          debugPrint(
+            '📤 Upload: '
+            '${percentage.toStringAsFixed(1)}% '
+            '($sent/$total bytes)',
+          );
         },
       );
 
-      // ============================================================
-      // API CALL
-      // ============================================================
+      debugPrint('');
+      debugPrint('==========================================');
+      debugPrint('🟢 SAVE DIARY RESPONSE');
+      debugPrint('==========================================');
+      debugPrint('Status Code: ${response.statusCode}');
+      debugPrint('Response Data: ${response.data}');
+      debugPrint('==========================================');
 
-      print('');
-      print('==========================================');
-      print('🟢 CALLING SAVE DIARY API');
-      print('==========================================');
+      final dynamic responseData = response.data;
 
-      final response = await dio.post(url, data: formData, options: options);
-
-      // ============================================================
-      // RESPONSE
-      // ============================================================
-
-      print('');
-      print('==========================================');
-      print('🟢 SAVE DIARY RESPONSE');
-      print('==========================================');
-
-      print('Status Code: ${response.statusCode}');
-      print('Response Data: ${response.data}');
-
-      print('==========================================');
+      if (responseData is! Map<String, dynamic>) {
+        throw Exception('Invalid Save Diary API response: $responseData');
+      }
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return MasterResponseModel.fromJson(response.data);
+        return MasterResponseModel.fromJson(responseData);
       }
 
       throw ServerException(
-        errorMessageModel: ErrorMessageModel.fromJson(response.data),
+        errorMessageModel: ErrorMessageModel.fromJson(responseData),
       );
-    } on DioException catch (e, stackTrace) {
-      print('');
-      print('==========================================');
-      print('❌ DIO ERROR');
-      print('==========================================');
+    } on DioException catch (error, stackTrace) {
+      final dynamic responseData = error.response?.data;
 
-      print('Message : ${e.message}');
-      print('Status  : ${e.response?.statusCode}');
-      print('Response: ${e.response?.data}');
-      print('URL     : ${e.requestOptions.uri}');
+      debugPrint('');
+      debugPrint('==========================================');
+      debugPrint('❌ SAVE DIARY DIO ERROR');
+      debugPrint('==========================================');
+      debugPrint('Message : ${error.message}');
+      debugPrint('Status  : ${error.response?.statusCode}');
+      debugPrint('Response: $responseData');
+      debugPrint('URL     : ${error.requestOptions.uri}');
 
-      print('==========================================');
-      print(stackTrace);
+      final dynamic failedRequestData = error.requestOptions.data;
 
-      if (e.response?.data is Map<String, dynamic>) {
+      if (failedRequestData is FormData) {
+        debugPrint('');
+        debugPrint('📋 FAILED REQUEST FIELDS');
+        debugPrint('------------------------------------------');
+
+        for (final MapEntry<String, String> field in failedRequestData.fields) {
+          debugPrint('${field.key}: ${field.value}');
+        }
+
+        debugPrint('');
+        debugPrint('📁 FAILED REQUEST FILES');
+        debugPrint('------------------------------------------');
+
+        for (final MapEntry<String, MultipartFile> file
+            in failedRequestData.files) {
+          debugPrint('${file.key}: ${file.value.filename}');
+        }
+      }
+
+      debugPrintStack(stackTrace: stackTrace);
+      debugPrint('==========================================');
+
+      if (responseData is Map<String, dynamic>) {
         throw ServerException(
-          errorMessageModel: ErrorMessageModel.fromJson(e.response!.data),
+          errorMessageModel: ErrorMessageModel.fromJson(responseData),
         );
       }
 
-      rethrow;
-    } catch (e, stackTrace) {
-      print('');
-      print('==========================================');
-      print('❌ ERROR IN SAVE DIARY');
-      print('==========================================');
-
-      print(e);
-      print(stackTrace);
-
-      print('==========================================');
+      throw Exception(error.message ?? 'Unable to save diary');
+    } catch (error, stackTrace) {
+      debugPrint('');
+      debugPrint('==========================================');
+      debugPrint('❌ ERROR IN SAVE DIARY');
+      debugPrint('==========================================');
+      debugPrint('Error: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      debugPrint('==========================================');
 
       rethrow;
     }
