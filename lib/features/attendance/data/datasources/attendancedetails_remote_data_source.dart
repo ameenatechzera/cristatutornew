@@ -7,9 +7,11 @@ import 'package:cristalteacher/core/network/api_endpoints.dart';
 import 'package:cristalteacher/core/network/api_helper.dart';
 import 'package:cristalteacher/features/attendance/data/models/attendance_report_model.dart';
 import 'package:cristalteacher/features/attendance/data/models/fetch_attendancedetails_model.dart';
+import 'package:cristalteacher/features/attendance/data/models/monthly_attendanceResultModel.dart';
 import 'package:cristalteacher/features/attendance/data/models/studentattendance_response_model.dart';
 import 'package:cristalteacher/features/attendance/domain/parameters/attendance_report_parameter.dart';
 import 'package:cristalteacher/features/attendance/domain/parameters/fetch_attendancedetails_parameter.dart';
+import 'package:cristalteacher/features/attendance/domain/parameters/monthlyAttendanceRequest.dart';
 import 'package:cristalteacher/features/attendance/domain/parameters/save_attendance_parameter.dart';
 import 'package:cristalteacher/features/attendance/domain/parameters/update_studentattendance_parameter.dart';
 import 'package:cristalteacher/services/shared_preference_helper.dart';
@@ -28,6 +30,7 @@ abstract class AttendanceRemoteDataSource {
     int studentAttendanceMasterId,
     UpdateStudentAttendanceParameter params,
   );
+  Future<MonthlyAttendanceModel> fetchMonthlyAttendance(MonthlyAttendanceRequest request);
 }
 
 class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
@@ -488,6 +491,62 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return MasterResponseModel.fromJson(response.data);
+      } else {
+        throw ServerException(
+          errorMessageModel: ErrorMessageModel.fromJson(response.data),
+        );
+      }
+    } catch (e, stacktrace) {
+      print('❌ Exception in updateStudentAttendance: $e');
+      print(stacktrace);
+      rethrow;
+    }
+  }
+  @override
+  Future<MonthlyAttendanceModel> fetchMonthlyAttendance(MonthlyAttendanceRequest request)
+  async {
+    print('✏️ Monthly Student Attendance Called');
+    print('MonthlyAttendanceRequest: ${request.toJson()}');
+
+    try {
+      final baseUrl = await SharedPreferenceHelper().getBaseUrl();
+
+      if (baseUrl == null || baseUrl.isEmpty) {
+        throw Exception("Base URL not set");
+      }
+
+      final url =
+          '${ApiConstants.getMonthlyAttendancePath(baseUrl)}';
+
+      print("✏️ Update Student Attendance URL: $url");
+
+      final options = await ApiHelper.getAuthOptions(withToken: true);
+
+      final response = await dio.post(
+        url,
+        data: request.toJson(),
+        options: options,
+      );
+
+      print('✏️ Status Code: ${response.statusCode}');
+
+      final responseString = jsonEncode(response.data);
+
+      const chunkSize = 800;
+
+      for (int i = 0; i < responseString.length; i += chunkSize) {
+        print(
+          responseString.substring(
+            i,
+            i + chunkSize > responseString.length
+                ? responseString.length
+                : i + chunkSize,
+          ),
+        );
+      }
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return MonthlyAttendanceModel.fromJson(response.data);
       } else {
         throw ServerException(
           errorMessageModel: ErrorMessageModel.fromJson(response.data),

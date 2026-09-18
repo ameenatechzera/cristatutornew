@@ -174,4 +174,8 @@ class ApiConstants {
   static String updateExamPath(String baseUrl, int examId) {
     return '${baseUrl}update-exam/$examId';
   }
+  //Monthly Report Attendance
+  static String getMonthlyAttendancePath(String baseUrl) {
+    return '${baseUrl}class-wise-attendance-report-bymonth';
+  }
 }

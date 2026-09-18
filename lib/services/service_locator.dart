@@ -1,6 +1,7 @@
 import 'package:cristalteacher/features/attendance/data/datasources/attendancedetails_remote_data_source.dart';
 import 'package:cristalteacher/features/attendance/data/repositories/attendance_repository_impl.dart';
 import 'package:cristalteacher/features/attendance/domain/repositories/attendancedetails_repository.dart';
+import 'package:cristalteacher/features/attendance/domain/usecases/fetchMonthlyAttendanceUseCase.dart';
 import 'package:cristalteacher/features/attendance/domain/usecases/fetch_attendance_report_usecase.dart';
 import 'package:cristalteacher/features/attendance/domain/usecases/fetch_attendancedetails_usecase.dart';
 import 'package:cristalteacher/features/attendance/domain/usecases/fetch_student_attendance_usecase.dart';
@@ -146,7 +147,7 @@ Future<void> init() async {
       saveAttendanceUseCase: sl(),
       fetchAttendanceReportUseCase: sl(),
       fetchStudentAttendanceUseCase: sl(),
-      updateStudentAttendanceUseCase: sl(),
+      updateStudentAttendanceUseCase: sl(), fetchMonthlyAttendanceUseCase: sl(),
     ),
   );
 
@@ -155,6 +156,8 @@ Future<void> init() async {
   sl.registerLazySingleton(() => FetchAttendanceReportUseCase(sl()));
   sl.registerLazySingleton(() => FetchStudentAttendanceUseCase(sl()));
   sl.registerLazySingleton(() => UpdateStudentAttendanceUseCase(sl()));
+  sl.registerLazySingleton(() => FetchMonthlyAttendanceUseCase(sl()));
+
 
   sl.registerLazySingleton<AttendanceRepository>(
     () => AttendanceRepositoryImpl(sl()),

@@ -1,6 +1,7 @@
 import 'package:cristalteacher/core/appdata/appdata.dart';
 import 'package:cristalteacher/features/attendance/presentation/screens/attendance_report_new.dart';
 import 'package:cristalteacher/features/attendance/presentation/screens/attendance_report_screen.dart';
+import 'package:cristalteacher/features/attendance/presentation/screens/monthly_attendance_report_screen.dart';
 import 'package:cristalteacher/features/authentication/domain/entities/class_details_entity.dart';
 import 'package:cristalteacher/features/authentication/domain/entities/teacher_dashboard_result.dart';
 import 'package:cristalteacher/features/authentication/domain/parameters/fetch_teacherdashboard_request.dart';
@@ -913,7 +914,7 @@ class _QuickAccessItem extends StatelessWidget {
             if (label == 'Attendance') {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => AttendanceReportScreen()),
+                MaterialPageRoute(builder: (_) => MonthlyAttendanceScreen()),
                 //AttendanceDemoApp()),
                 //AttendanceReportScreen()),
               );
