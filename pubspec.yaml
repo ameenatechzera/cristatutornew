@@ -139,7 +139,14 @@ flutter:
     - assets/icons/Group (27).svg
     - assets/icons/Group (28).svg
     - assets/icons/Clip path group (3).svg
-
+    - assets/images/image 63.png
+    - assets/icons/Vector (4).svg
+    - assets/images/image 67 (1).png
+    - assets/images/image 50.png
+    - assets/images/image 57.png
+    - assets/images/image 58.png
+    - assets/images/image 59.png 
+    - assets/icons/Vector (1).svg
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

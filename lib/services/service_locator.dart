@@ -71,6 +71,11 @@ import 'package:cristalteacher/features/timetable/data/repositories/teacher_time
 import 'package:cristalteacher/features/timetable/domain/repositories/teacher_timetable_repository.dart';
 import 'package:cristalteacher/features/timetable/domain/usecases/fetch_teacher_timetable_usecase.dart';
 import 'package:cristalteacher/features/timetable/presentation/cubit/timetable_cubit.dart';
+import 'package:cristalteacher/features/tutorprofile/data/datasources/tutor_details_remote_datasource.dart';
+import 'package:cristalteacher/features/tutorprofile/data/repositories/tutor_details_repository_impl.dart';
+import 'package:cristalteacher/features/tutorprofile/domain/repository/tutor_details_repository.dart';
+import 'package:cristalteacher/features/tutorprofile/domain/usecases/fetch_tutor_details_usecase.dart';
+import 'package:cristalteacher/features/tutorprofile/presentation/cubit/tutordetails_cubit.dart';
 import 'package:cristalteacher/features/workplan/data/datasources/workplan_remote_data_source.dart';
 import 'package:cristalteacher/features/workplan/data/repositories/workplan_repository_impl.dart';
 import 'package:cristalteacher/features/workplan/domain/repositories/workplan_repository.dart';
@@ -317,5 +322,23 @@ Future<void> init() async {
   /// Remote Data Source
   sl.registerLazySingleton<ExamManagementRemoteDataSource>(
     () => ExamManagementRemoteDataSourceImpl(),
+  );
+
+  /// ================= Tutor Details =================
+
+  /// Cubit
+  sl.registerFactory(() => TutordetailsCubit(sl()));
+
+  /// Use Case
+  sl.registerLazySingleton(() => FetchTutorDetailsUseCase(sl()));
+
+  /// Repository
+  sl.registerLazySingleton<TutorDetailsRepository>(
+    () => TutorDetailsRepositoryImpl(sl()),
+  );
+
+  /// Remote Data Source
+  sl.registerLazySingleton<TutorDetailsRemoteDataSource>(
+    () => TutorDetailsRemoteDataSourceImpl(),
   );
 }

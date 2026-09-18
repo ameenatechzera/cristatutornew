@@ -8,6 +8,7 @@ import 'package:cristalteacher/features/exams/presentation/cubit/exam_cubit.dart
 import 'package:cristalteacher/features/feed/presentation/cubit/feed_cubit.dart';
 import 'package:cristalteacher/features/materials/presentation/cubit/material_cubit.dart';
 import 'package:cristalteacher/features/timetable/presentation/cubit/timetable_cubit.dart';
+import 'package:cristalteacher/features/tutorprofile/presentation/cubit/tutordetails_cubit.dart';
 import 'package:cristalteacher/features/workplan/presentation/cubit/workplan_cubit.dart';
 import 'package:cristalteacher/services/service_locator.dart';
 import 'package:cristalteacher/services/service_locator.dart' as ServiceLocator;
@@ -44,6 +45,7 @@ class MyApp extends StatelessWidget {
         BlocProvider<ExamManagementCubit>(
           create: (_) => sl<ExamManagementCubit>(),
         ),
+        BlocProvider<TutordetailsCubit>(create: (_) => sl<TutordetailsCubit>()),
       ],
       child: MaterialApp(
         localizationsDelegates: const [

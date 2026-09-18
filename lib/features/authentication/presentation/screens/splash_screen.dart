@@ -1,3 +1,5 @@
+import 'package:cristalteacher/features/authentication/presentation/screens/first_splash_screen.dart';
+import 'package:cristalteacher/features/authentication/presentation/screens/second_splash_screen.dart';
 import 'package:cristalteacher/features/authentication/presentation/screens/login_screen.dart';
 import 'package:cristalteacher/features/authentication/presentation/screens/register_screen.dart';
 import 'package:cristalteacher/features/authentication/presentation/screens/teacherDashboard_screen.dart';
@@ -40,7 +42,8 @@ class _AppStartScreenState extends State<AppStartScreen> {
     }
 
     if (!isRegistered) {
-      _openPage(const RegisterCodePage());
+      _openPage(FirstSplashScreen());
+      //_openPage(const RegisterCodePage());
       return;
     }
 

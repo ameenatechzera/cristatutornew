@@ -174,4 +174,9 @@ class ApiConstants {
   static String updateExamPath(String baseUrl, int examId) {
     return '${baseUrl}update-exam/$examId';
   }
+
+  /// gettutordetails
+  static String getTutorDetailsPath(String baseUrl) {
+    return '${baseUrl}app/employee-details/1';
+  }
 }
