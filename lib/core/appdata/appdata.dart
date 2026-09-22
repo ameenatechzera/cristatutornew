@@ -1,4 +1,5 @@
 import 'package:cristalteacher/features/authentication/domain/entities/class_details_entity.dart';
+import 'package:cristalteacher/features/authentication/domain/entities/fetch_accyear_entity.dart';
 import 'package:flutter/material.dart';
 
 class AppData {
@@ -28,12 +29,19 @@ class AppData {
   static String?
   teacherSubject; // Tutorship data of the currently logged-in teacher.
   static List<TutorshipClass> tutorshipClasses = [];
+  static List<AccYearEntity> accYearsList =[];
 
   // Complete standard list from data.Standard.
   static List<TutorshipClass> standards = [];
 
   static bool get hasTutorshipData {
     return tutorshipClasses.isNotEmpty || standards.isNotEmpty;
+  }
+
+  static void saveAccYearsList({
+    required List<AccYearEntity> accYearList,
+  }) {
+    accYearsList = List<AccYearEntity>.from(accYearList);
   }
 
   static void saveTutorshipData({

@@ -188,6 +188,9 @@ class AuthenticationCubit extends Cubit<AuthenticationState> {
         },
         (response) {
           emit(FetchAccYearSuccess(response));
+          AppData.saveAccYearsList(
+            accYearList: response.data?? <AccYearEntity>[]
+          );
         },
       );
     } catch (e, stackTrace) {

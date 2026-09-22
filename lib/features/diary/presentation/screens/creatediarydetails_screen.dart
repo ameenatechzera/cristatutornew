@@ -2582,12 +2582,14 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
       // ---------------- CREATE ----------------
       final SaveDiaryParameter request = SaveDiaryParameter(
         accYear: AppData.accYear!,
-        standardId: [
-          DiaryStandardDivisionParameter(
-            standardId: widget.standardId,
-            divisionId: widget.divisionId,
-          ),
-        ],
+        standardId: [DiaryStandardParameter(standardId: widget.standardId)],
+        divisionId: [DiaryDivisionParameter(divisionId: widget.divisionId)],
+        // standardDivisionList: [
+        //   StandardDivisionPair(
+        //     standardId: selectedStandardId!,
+        //     divisionId: selectedDivisionId!,
+        //   ),
+        // ],
         subjectId: widget.subjectId,
         employeeId: AppData.employeeId!,
         diaryType: widget.diaryType,
@@ -2608,7 +2610,7 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
       debugPrint('SAVE DIARY REQUEST');
       debugPrint('==================================================');
 
-      _printRequestJson(request.toJson());
+      //_printRequestJson(request.toJson());
 
       await context.read<DiaryCubit>().saveDiary(request);
     } catch (error, stackTrace) {

@@ -536,29 +536,27 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
       debugPrint('🟢 Base URL: $baseUrl');
       debugPrint('🟢 DB Name: $databaseName');
       debugPrint('🟢 API URL: $url');
-
-      /*
-     * Convert selected classes to:
-     *
-     * [
-     *   {"StandardId":1,"DivisionId":1},
-     *   {"StandardId":2,"DivisionId":3}
-     * ]
-     */
-      final String standardDivisionJson = jsonEncode(
-        params.standardId
-            .map((DiaryStandardDivisionParameter item) => item.toJson())
-            .toList(),
-      );
-
+      final List<Map<String, dynamic>> standardPairs = params.standardId
+          .map((pair) => {
+        'StandardId': pair.standardId
+      })
+          .toList();
+      final List<Map<String, dynamic>> divisionPairs = params.divisionId
+          .map((pair) => {
+        'DivisionId': pair.divisionId
+      })
+          .toList();
+      final String standardJson = jsonEncode(standardPairs);
+      final String divisionJson = jsonEncode(divisionPairs);
       final FormData formData = FormData();
 
       formData.fields.addAll([
         MapEntry('AccYear', params.accYear),
-        MapEntry('StandardId', standardDivisionJson),
         MapEntry('SubjectId', params.subjectId.toString()),
         MapEntry('EmployeeId', params.employeeId.toString()),
-        MapEntry('diaryType', params.diaryType),
+        MapEntry('StandardId', standardJson),
+        MapEntry('DivisionId', divisionJson),
+        MapEntry('diaryType', "1"),
         MapEntry('diaryTitle', params.diaryTitle),
         MapEntry('Description', params.description),
         MapEntry('diaryDate', params.diaryDate),
@@ -569,6 +567,15 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
         MapEntry('CreatedUser', params.createdUser.toString()),
         MapEntry('videoUrl', params.videoUrl),
       ]);
+
+      /*
+       * Send StandardId and DivisionId as parallel arrays, one entry per
+       * selected class-division pair, instead of a single JSON string.
+       *
+       * e.g. for two selected classes:
+       *   StandardId[]=1   DivisionId[]=1
+       *   StandardId[]=2   DivisionId[]=3
+       */
 
       debugPrint('');
       debugPrint('==========================================');
@@ -606,8 +613,8 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
         if (!fileString.startsWith('data:')) {
           throw Exception(
             'File ${index + 1} does not contain its file type. '
-            'The file must use a data URI such as '
-            'data:image/jpeg;base64,...',
+                'The file must use a data URI such as '
+                'data:image/jpeg;base64,...',
           );
         }
 
@@ -665,16 +672,16 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
           detectedContentType = 'application/msword';
         } else if (header.contains(
           'application/vnd.openxmlformats-officedocument'
-          '.wordprocessingml.document',
+              '.wordprocessingml.document',
         )) {
           fileName = 'diary_file_${index + 1}.docx';
           detectedContentType =
-              'application/vnd.openxmlformats-officedocument'
+          'application/vnd.openxmlformats-officedocument'
               '.wordprocessingml.document';
         } else {
           throw Exception(
             'Unsupported file type for file ${index + 1}: '
-            '$header',
+                '$header',
           );
         }
 
@@ -725,9 +732,9 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
       for (final MapEntry<String, MultipartFile> file in formData.files) {
         debugPrint(
           'Key: ${file.key} | '
-          'Filename: ${file.value.filename} | '
-          'Length: ${file.value.length} | '
-          'ContentType: ${file.value.contentType}',
+              'Filename: ${file.value.filename} | '
+              'Length: ${file.value.length} | '
+              'ContentType: ${file.value.contentType}',
         );
       }
 
@@ -763,8 +770,8 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
 
           debugPrint(
             '📤 Upload: '
-            '${percentage.toStringAsFixed(1)}% '
-            '($sent/$total bytes)',
+                '${percentage.toStringAsFixed(1)}% '
+                '($sent/$total bytes)',
           );
         },
       );
@@ -818,7 +825,7 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
         debugPrint('------------------------------------------');
 
         for (final MapEntry<String, MultipartFile> file
-            in failedRequestData.files) {
+        in failedRequestData.files) {
           debugPrint('${file.key}: ${file.value.filename}');
         }
       }

@@ -93,7 +93,7 @@ class DiaryCubit extends Cubit<DiaryState> {
   }
 
   Future<void> saveDiary(SaveDiaryParameter request) async {
-    print('📘 Save Diary Request: ${request.toJson()}');
+    //print('📘 Save Diary Request: ${request.toJson()}');
 
     emit(SaveDiaryLoading());
 
