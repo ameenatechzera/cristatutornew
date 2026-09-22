@@ -10,11 +10,24 @@ sealed class AttendanceState extends Equatable {
 final class AttendanceInitial extends AttendanceState {}
 
 final class AttendanceLoading extends AttendanceState {}
-
+class MonthlyAttendanceReportLoading extends AttendanceState {}
 final class AttendanceSuccess extends AttendanceState {
   final AttendanceDetailsEntity response;
 
   const AttendanceSuccess(this.response);
+}
+
+class MonthlyAttendanceReportFailure extends AttendanceState {
+  final String message;
+
+  const MonthlyAttendanceReportFailure(this.message);
+}
+
+
+class MonthlyAttendanceReportSuccess extends AttendanceState {
+  final MonthlyAttendanceResult response;
+
+  const MonthlyAttendanceReportSuccess(this.response);
 }
 
 final class AttendanceFailure extends AttendanceState {

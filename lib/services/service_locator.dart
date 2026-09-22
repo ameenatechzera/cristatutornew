@@ -1,6 +1,7 @@
 import 'package:cristalteacher/features/attendance/data/datasources/attendancedetails_remote_data_source.dart';
 import 'package:cristalteacher/features/attendance/data/repositories/attendance_repository_impl.dart';
 import 'package:cristalteacher/features/attendance/domain/repositories/attendancedetails_repository.dart';
+import 'package:cristalteacher/features/attendance/domain/usecases/fetchMonthlyAttendanceUseCase.dart';
 import 'package:cristalteacher/features/attendance/domain/usecases/fetch_attendance_report_usecase.dart';
 import 'package:cristalteacher/features/attendance/domain/usecases/fetch_attendancedetails_usecase.dart';
 import 'package:cristalteacher/features/attendance/domain/usecases/fetch_student_attendance_usecase.dart';
@@ -63,6 +64,8 @@ import 'package:cristalteacher/features/feed/presentation/cubit/feed_cubit.dart'
 import 'package:cristalteacher/features/materials/data/datasources/materials_remote_data_source.dart';
 import 'package:cristalteacher/features/materials/data/repositories/material_repository_impl.dart.dart';
 import 'package:cristalteacher/features/materials/domain/repository/material_repository.dart';
+import 'package:cristalteacher/features/materials/domain/usecases/delete_material_usecase.dart';
+import 'package:cristalteacher/features/materials/domain/usecases/fetch_material_details_usecase.dart';
 import 'package:cristalteacher/features/materials/domain/usecases/fetch_material_usecase.dart';
 import 'package:cristalteacher/features/materials/domain/usecases/save_material_usecase.dart';
 import 'package:cristalteacher/features/materials/presentation/cubit/material_cubit.dart';
@@ -152,6 +155,7 @@ Future<void> init() async {
       fetchAttendanceReportUseCase: sl(),
       fetchStudentAttendanceUseCase: sl(),
       updateStudentAttendanceUseCase: sl(),
+      fetchMonthlyAttendanceUseCase: sl(),
     ),
   );
 
@@ -160,6 +164,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => FetchAttendanceReportUseCase(sl()));
   sl.registerLazySingleton(() => FetchStudentAttendanceUseCase(sl()));
   sl.registerLazySingleton(() => UpdateStudentAttendanceUseCase(sl()));
+  sl.registerLazySingleton(() => FetchMonthlyAttendanceUseCase(sl()));
 
   sl.registerLazySingleton<AttendanceRepository>(
     () => AttendanceRepositoryImpl(sl()),
@@ -191,12 +196,19 @@ Future<void> init() async {
 
   /// Cubit
   sl.registerFactory(
-    () => MaterialCubit(fetchMaterialUseCase: sl(), saveMaterialUseCase: sl()),
+    () => MaterialCubit(
+      fetchMaterialUseCase: sl(),
+      saveMaterialUseCase: sl(),
+      deleteMaterialUseCase: sl(),
+      fetchMaterialDetailsUseCase: sl(),
+    ),
   );
 
   /// UseCase
   sl.registerLazySingleton(() => FetchMaterialUseCase(sl()));
   sl.registerLazySingleton(() => SaveMaterialUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteMaterialUseCase(sl()));
+  sl.registerLazySingleton(() => FetchMaterialDetailsUseCase(sl()));
 
   /// Repository
   sl.registerLazySingleton<MaterialRepository>(

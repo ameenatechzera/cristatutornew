@@ -179,4 +179,19 @@ class ApiConstants {
   static String getTutorDetailsPath(String baseUrl) {
     return '${baseUrl}app/employee-details/1';
   }
+
+  //Monthly Report Attendance
+  static String getMonthlyAttendancePath(String baseUrl) {
+    return '${baseUrl}class-wise-attendance-report-bymonth';
+  }
+
+  /// Delete material
+  static String deleteMaterialPath(String baseUrl, int materialId) {
+    return '${baseUrl}delete-material/$materialId';
+  }
+
+  /// Delete material
+  static String getMaterialDetailsPath(String baseUrl, int materialId) {
+    return '${baseUrl}material-byid/$materialId';
+  }
 }
