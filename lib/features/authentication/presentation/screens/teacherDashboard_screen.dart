@@ -299,6 +299,10 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                               imagePath: 'assets/images/exam.png',
                               label: 'Exam',
                             ),
+                            _QuickAccessItem(
+                              imagePath: 'assets/images/exam.png',
+                              label: 'Monthly Attendance',
+                            ),
                           ],
                         ),
                       ],
@@ -804,78 +808,6 @@ class _ClassCard extends StatelessWidget {
     );
   }
 }
-
-/// Time is intentionally skipped — shows only the combined class/division
-/// (e.g. "10 A") and the subject.
-// class _ClassCard extends StatelessWidget {
-//   final String classAndDivision;
-//   final String subject;
-//
-//   const _ClassCard({
-//     required this.classAndDivision,
-//     required this.subject,
-//   });
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Stack(
-//       clipBehavior: Clip.none,
-//       alignment: Alignment.bottomCenter,
-//       children: [
-//         // Fixed size for every card, regardless of text length — long
-//         // subject names truncate with an ellipsis instead of overflowing.
-//         SizedBox(
-//           width: 110,
-//           height: 125,
-//           child: Container(
-//             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-//             decoration: BoxDecoration(
-//               color: Colors.white.withOpacity(0.08),
-//               borderRadius: BorderRadius.circular(16),
-//               border: Border.all(color: Colors.white24),
-//             ),
-//             child: Column(
-//               mainAxisAlignment: MainAxisAlignment.start,
-//               children: [
-//                 Text(
-//                   classAndDivision,
-//                   textAlign: TextAlign.center,
-//                   maxLines: 1,
-//                   overflow: TextOverflow.ellipsis,
-//                   style: const TextStyle(
-//                     color: Colors.white,
-//                     fontSize: 13,
-//                     fontWeight: FontWeight.bold,
-//                   ),
-//                 ),
-//                 const SizedBox(height: 3),
-//                 Text(
-//                   subject,
-//                   textAlign: TextAlign.center,
-//                   maxLines: 1,
-//                   overflow: TextOverflow.ellipsis,
-//                   style: const TextStyle(color: Colors.white70, fontSize: 12),
-//                 ),
-//               ],
-//             ),
-//           ),
-//         ),
-//         Positioned(
-//           bottom: 10,
-//           child: Container(
-//             padding: const EdgeInsets.all(3),
-//             decoration: const BoxDecoration(
-//               color: Colors.green,
-//               shape: BoxShape.circle,
-//             ),
-//             child: const Icon(Icons.check, color: Colors.white, size: 15),
-//           ),
-//         ),
-//       ],
-//     );
-//   }
-// }
-
 class _QuickAccessItem extends StatelessWidget {
   final IconData? icon;
   final String? imagePath;
@@ -914,7 +846,7 @@ class _QuickAccessItem extends StatelessWidget {
             if (label == 'Attendance') {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => MonthlyAttendanceScreen()),
+                MaterialPageRoute(builder: (_) => AttendanceReportScreen()),
                 //AttendanceDemoApp()),
                 //AttendanceReportScreen()),
               );
@@ -949,9 +881,15 @@ class _QuickAccessItem extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => ExamListingScreen()),
               );
             }
+            if (label == 'Monthly Attendance') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => MonthlyAttendanceScreen()),
+              );
+            }
           },
           child: Container(
-            height: 76,
+            height: 86,
             width: 76,
             // decoration: BoxDecoration(
             //   color: Colors.white,
@@ -975,7 +913,7 @@ class _QuickAccessItem extends StatelessWidget {
         const SizedBox(height: 0),
         Text(
           label,
-          style: const TextStyle(fontSize: 13, color: Colors.black87),
+          style: const TextStyle(fontSize: 11, color: Colors.black87),
         ),
       ],
     );

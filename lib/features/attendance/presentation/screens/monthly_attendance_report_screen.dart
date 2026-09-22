@@ -1,8 +1,10 @@
 import 'package:cristalteacher/core/utils/custom_dropdown_field.dart';
+import 'package:cristalteacher/features/attendance/data/models/monthModel.dart';
 import 'package:cristalteacher/features/attendance/domain/parameters/monthlyAttendanceRequest.dart';
 import 'package:cristalteacher/features/attendance/presentation/cubit/attendance_cubit.dart';
 import 'package:cristalteacher/features/attendance/presentation/widgets/attendanceRowWrapper.dart';
 import 'package:cristalteacher/features/authentication/domain/entities/class_details_entity.dart';
+import 'package:cristalteacher/features/authentication/domain/entities/fetch_accyear_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -32,29 +34,59 @@ class MonthlyAttendanceScreen extends StatefulWidget {
   @override
   State<MonthlyAttendanceScreen> createState() => _MonthlyAttendanceScreenState();
 }
+
 List<TutorshipClass> tutorshipClasses = [];
 List<TutorshipClass> standards = [];
-
+int? selectedMonthId;
 List<DivisionDetails> divisions = [];
+List<AccYearEntity> accYearList = [];
+
 int? selectedStandardId;
 int? selectedDivisionId;
 String? selectedDivision;
 String? selectedStandard;
+String? selectedAccYear;
+
 class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
   // Keep the last-requested params around so we know which month/accYear to
   // use when turning "DayN" keys into real weekday labels.
   late MonthlyAttendanceRequest _currentRequest;
 
+  // Two horizontal scroll controllers: one for the student table, one for
+  // the bottom Present/Absent totals bar. They mirror each other so the
+  // day columns always stay aligned when either is scrolled.
+  final ScrollController _tableHorizontalController = ScrollController();
+  final ScrollController _totalsHorizontalController = ScrollController();
+  bool _isSyncingHorizontalScroll = false;
+
   @override
   void initState() {
     super.initState();
     tutorshipClasses = List<TutorshipClass>.from(AppData.tutorshipClasses);
-    print('tutorshipClasses ${tutorshipClasses.first}');
+    accYearList = List<AccYearEntity>.from(AppData.accYearsList);
+    if (accYearList.isNotEmpty) {
+      selectedAccYear = accYearList.first.accYear;
+    }
+
+    // --- default month to the current calendar month ---
+    final int currentMonth = DateTime.now().month; // 1 = Jan ... 12 = Dec
+
+    MonthModel? currentMonthEntry;
+    for (final month in monthList) {
+      if (month.monthId == currentMonth) {
+        currentMonthEntry = month;
+        break;
+      }
+    }
+
+    selectedMonthId = currentMonthEntry?.monthId ??
+        (monthList.isNotEmpty ? monthList.first.monthId : null);
+    // -----------------------------------------------------
+
     standards = _uniqueStandards();
     if (standards.isNotEmpty) {
       TutorshipClass? firstStandard;
       DivisionDetails? firstDivision;
-
 
       List<DivisionDetails> firstDivisions = [];
 
@@ -81,15 +113,69 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
         selectedDivision = firstDivision.division;
       }
     }
+
     _currentRequest = MonthlyAttendanceRequest(
-      month: 9,
-      accYear: '2026-2027',
-      standardId: null,
-      divisionId: null,
+      month: selectedMonthId ?? currentMonth,
+      accYear: selectedAccYear ?? '2026-2027',
+      standardId: selectedStandardId,
+      divisionId: selectedDivisionId,
+      branchId: 1,
+    );
+    context.read<AttendanceCubit>().fetchMonthlyAttendanceReport(_currentRequest);
+
+    // Keep the table and the totals bar scrolling in lockstep.
+    _tableHorizontalController.addListener(() {
+      _syncHorizontalScroll(_tableHorizontalController, _totalsHorizontalController);
+    });
+    _totalsHorizontalController.addListener(() {
+      _syncHorizontalScroll(_totalsHorizontalController, _tableHorizontalController);
+    });
+  }
+
+  @override
+  void dispose() {
+    _tableHorizontalController.dispose();
+    _totalsHorizontalController.dispose();
+    super.dispose();
+  }
+
+  void _syncHorizontalScroll(ScrollController source, ScrollController target) {
+    if (_isSyncingHorizontalScroll || !target.hasClients) return;
+    _isSyncingHorizontalScroll = true;
+    final double maxExtent = target.position.maxScrollExtent;
+    target.jumpTo(source.offset.clamp(0.0, maxExtent));
+    _isSyncingHorizontalScroll = false;
+  }
+
+  void _fetchWithCurrentSelections() {
+    _currentRequest = MonthlyAttendanceRequest(
+      month: selectedMonthId ?? _currentRequest.month,
+      accYear: selectedAccYear ?? _currentRequest.accYear,
+      standardId: selectedStandardId,
+      divisionId: selectedDivisionId,
       branchId: 1,
     );
     context.read<AttendanceCubit>().fetchMonthlyAttendanceReport(_currentRequest);
   }
+
+  void _selectAcademicYear(String? accYear) {
+    if (accYear == null) return;
+
+    AccYearEntity? selectedItem;
+    for (final item in accYearList) {
+      if (item.accYear == accYear) {
+        selectedItem = item;
+        break;
+      }
+    }
+    if (selectedItem == null) return;
+
+    setState(() {
+      selectedAccYear = selectedItem!.accYear;
+    });
+    _fetchWithCurrentSelections();
+  }
+
   void _selectStandard(int? standardId) {
     if (standardId == null) {
       return;
@@ -124,6 +210,7 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
         selectedDivision = null;
       }
     });
+    _fetchWithCurrentSelections();
   }
 
   void _selectDivision(int? divisionId) {
@@ -148,7 +235,18 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
       selectedDivisionId = selectedItem!.divisionId;
       selectedDivision = selectedItem.division;
     });
+    _fetchWithCurrentSelections();
   }
+
+  void _selectMonth(int monthId) {
+    setState(() {
+      selectedMonthId = monthId;
+    });
+
+    debugPrint('Selected Month ID: $monthId');
+    _fetchWithCurrentSelections();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -158,19 +256,19 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
         elevation: 0,
         titleSpacing: 0,
         leading: const Icon(Icons.arrow_back, color: Colors.white),
-        title: const Text('10A Attendance',
+        title: const Text('Attendance Report',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 18)),
-        centerTitle: true,
+        // centerTitle: true,
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
-              child: const Icon(Icons.tune, color: _purple),
-            ),
-          ),
+          // Padding(
+          //   padding: const EdgeInsets.only(right: 12),
+          //   child: Container(
+          //     width: 40,
+          //     height: 40,
+          //     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+          //     child: const Icon(Icons.tune, color: _purple),
+          //   ),
+          // ),
         ],
       ),
       body: Column(
@@ -182,16 +280,16 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
             child: Column(
               children: [
                 Row(
-                  children: const [
-                    Expanded(child: _FilterBox(icon: Icons.calendar_month, label: 'Month')),
-                    SizedBox(width: 10),
-                    Expanded(child: _FilterBox(icon: Icons.calendar_today, label: 'Academic Year')),
+                  children: [
+                    Expanded(child: _buildMonthDropdown()),
+                    const SizedBox(width: 10),
+                    Expanded(child: _buildAcademicYearDropdown()),
                   ],
                 ),
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    Expanded(child:_buildStandardDropdown()),
+                    Expanded(child: _buildStandardDropdown()),
                     const SizedBox(width: 10),
                     Expanded(child: _buildDivisionDropdown()),
                   ],
@@ -226,7 +324,8 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
           ),
 
           // Table + footer, both driven off the SAME BlocConsumer so the
-          // footer's day columns always match the table's day columns.
+          // footer's day columns always match the table's day columns, and
+          // both share synced horizontal scroll controllers.
           Expanded(
             child: BlocConsumer<AttendanceCubit, AttendanceState>(
               listener: (context, state) {
@@ -253,7 +352,9 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
                           Text(state.message, textAlign: TextAlign.center),
                           const SizedBox(height: 12),
                           ElevatedButton(
-                            onPressed: () => context.read<AttendanceCubit>().fetchMonthlyAttendanceReport(_currentRequest),
+                            onPressed: () => context
+                                .read<AttendanceCubit>()
+                                .fetchMonthlyAttendanceReport(_currentRequest),
                             child: const Text('Retry'),
                           ),
                         ],
@@ -281,16 +382,22 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
                   return const Center(child: Text('No attendance data for this selection.'));
                 }
 
-                final presentTotals = AttendanceRowMapper.presentTotalsPerDay(students, columns.length);
-                final absentTotals = AttendanceRowMapper.absentTotalsPerDay(students, columns.length);
+                final presentTotals =
+                AttendanceRowMapper.presentTotalsPerDay(students, columns.length);
+                final absentTotals =
+                AttendanceRowMapper.absentTotalsPerDay(students, columns.length);
+
+                final double rowWidth = MonthlyAttendanceScreen._nameColWidth +
+                    MonthlyAttendanceScreen._dayColWidth * columns.length;
 
                 return Column(
                   children: [
                     Expanded(
                       child: SingleChildScrollView(
+                        controller: _tableHorizontalController,
                         scrollDirection: Axis.horizontal,
                         child: SizedBox(
-                          width: MonthlyAttendanceScreen._nameColWidth + MonthlyAttendanceScreen._dayColWidth * columns.length,
+                          width: rowWidth,
                           child: Column(
                             children: [
                               _HeaderRow(
@@ -315,13 +422,21 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
                         ),
                       ),
                     ),
+                    // Bottom totals section: horizontal scroll only, kept in
+                    // sync with the table above. No vertical scroll here —
+                    // it's a plain Column sized to its own content. Both
+                    // rows also set their own purple background (see
+                    // _TotalsRow) so Present and Absent always match.
                     Container(
                       color: _purple,
                       child: SingleChildScrollView(
+                        controller: _totalsHorizontalController,
                         scrollDirection: Axis.horizontal,
+                        physics: const ClampingScrollPhysics(),
                         child: SizedBox(
-                          width: MonthlyAttendanceScreen._nameColWidth + MonthlyAttendanceScreen._dayColWidth * columns.length,
+                          width: rowWidth,
                           child: Column(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               _TotalsRow(
                                 label: 'Present',
@@ -351,6 +466,99 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
       ),
     );
   }
+
+  Widget _buildAcademicYearDropdown() {
+    final List<DropdownMenuItem<String>> items = accYearList.map((accYear) {
+      return DropdownMenuItem<String>(
+        value: accYear.accYear,
+        child: Text(
+          accYear.accYear ?? '',
+          style: const TextStyle(fontSize: 14, color: Color(0xFF252525)),
+        ),
+      );
+    }).toList();
+
+    final DropdownMenuItem<String>? selectedItem = selectedItemOf<String>(
+      items,
+      selectedAccYear,
+    );
+
+    return _buildFilterStyleDropdown(
+      icon: Icons.calendar_today,
+      label: 'Academic Year',
+      child: InkWell(
+        onTap: items.isEmpty
+            ? null
+            : () async {
+          final PickerSelection<String>? result = await showOptionPickerSheet<String>(
+            context: context,
+            title: 'Select Academic Year',
+            items: items,
+            selectedValue: selectedAccYear,
+          );
+
+          if (!mounted || result == null) return;
+          _selectAcademicYear(result.value);
+        },
+        child: Row(
+          children: [
+            Expanded(
+              child: selectedItem?.child ??
+                  const Text('Select', style: TextStyle(fontSize: 14, color: Color(0xFF777777))),
+            ),
+            const Icon(Icons.keyboard_arrow_down, color: Colors.black45),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMonthDropdown() {
+    final List<DropdownMenuItem<int>> items = monthList.map((month) {
+      return DropdownMenuItem<int>(
+        value: month.monthId,
+        child: Text(
+          month.monthName,
+          style: const TextStyle(fontSize: 14, color: Color(0xFF252525)),
+        ),
+      );
+    }).toList();
+
+    final DropdownMenuItem<int>? selectedItem = selectedItemOf<int>(
+      items,
+      selectedMonthId,
+    );
+
+    return _buildFilterStyleDropdown(
+      icon: Icons.calendar_month,
+      label: 'Month',
+      child: InkWell(
+        onTap: items.isEmpty
+            ? null
+            : () async {
+          final PickerSelection<int>? result = await showOptionPickerSheet<int>(
+            context: context,
+            title: 'Select Month',
+            items: items,
+            selectedValue: selectedMonthId,
+          );
+
+          if (!mounted || result == null) return;
+          _selectMonth(result.value!);
+        },
+        child: Row(
+          children: [
+            Expanded(
+              child: selectedItem?.child ??
+                  const Text('Select', style: TextStyle(fontSize: 14, color: Color(0xFF777777))),
+            ),
+            const Icon(Icons.keyboard_arrow_down, color: Colors.black45),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildStandardDropdown() {
     final List<DropdownMenuItem<int>> items = standards.map((standard) {
       return DropdownMenuItem<int>(
@@ -374,8 +582,7 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
         onTap: items.isEmpty
             ? null
             : () async {
-          final PickerSelection<int>? result =
-          await showOptionPickerSheet<int>(
+          final PickerSelection<int>? result = await showOptionPickerSheet<int>(
             context: context,
             title: 'Select Standard',
             items: items,
@@ -397,6 +604,7 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
       ),
     );
   }
+
   Widget _buildDivisionDropdown() {
     final List<DropdownMenuItem<int>> items = divisions.map((division) {
       return DropdownMenuItem<int>(
@@ -420,8 +628,7 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
         onTap: items.isEmpty
             ? null
             : () async {
-          final PickerSelection<int>? result =
-          await showOptionPickerSheet<int>(
+          final PickerSelection<int>? result = await showOptionPickerSheet<int>(
             context: context,
             title: 'Select Division',
             items: items,
@@ -443,6 +650,7 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
       ),
     );
   }
+
   List<TutorshipClass> _uniqueStandards() {
     final Map<int, TutorshipClass> unique = {};
 
@@ -454,6 +662,7 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
 
     return unique.values.toList();
   }
+
   /// Every division of [standardId], merged across all entries that carry
   /// that standard and deduplicated by division id.
   List<DivisionDetails> _divisionsFor(int? standardId) {
@@ -468,8 +677,7 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
         continue;
       }
 
-      for (final DivisionDetails division
-      in item.division ?? const <DivisionDetails>[]) {
+      for (final DivisionDetails division in item.division ?? const <DivisionDetails>[]) {
         if (division.divisionId != null) {
           unique.putIfAbsent(division.divisionId!, () => division);
         }
@@ -502,7 +710,6 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
   }
 }
 
-
 Widget _buildDropdownContainer({
   required String label,
   required Widget child,
@@ -534,6 +741,7 @@ Widget _buildDropdownContainer({
     ],
   );
 }
+
 // ---------------------------------------------------------------------------
 // Pieces
 // ---------------------------------------------------------------------------
@@ -553,7 +761,9 @@ class _FilterBox extends StatelessWidget {
           Icon(icon, size: 18, color: _purple),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(label, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w500)),
+            child: Text(label,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w500)),
           ),
           const Icon(Icons.keyboard_arrow_down, color: Colors.black45),
         ],
@@ -676,7 +886,6 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('status $status');
     switch (status) {
       case DayAttendanceStatus.present:
         return _chip('P', _presentGreenBg, _presentGreenText);
@@ -716,7 +925,14 @@ class _TotalsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 40,
-      decoration: const BoxDecoration(border: Border(top: BorderSide(color: Colors.white24, width: 0.6))),
+      // Explicit purple background here (not just inherited from the
+      // parent Container) so both the Present and Absent rows always
+      // render with the same blue/purple background, regardless of
+      // where this widget is placed.
+      decoration: const BoxDecoration(
+        color: _purple,
+        border: Border(top: BorderSide(color: Colors.white24, width: 0.6)),
+      ),
       child: Row(
         children: [
           SizedBox(
@@ -732,7 +948,8 @@ class _TotalsRow extends StatelessWidget {
               child: Center(
                 child: columns[i].isSunday
                     ? const Text('—', style: TextStyle(color: Colors.white38))
-                    : Text('${totals[i]}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    : Text('${totals[i]}',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
               ),
             ),
         ],

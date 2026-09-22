@@ -35,7 +35,7 @@ class ApiConstants {
   }
 
   static String getSaveDiaryPath(String baseUrl) {
-    return '${baseUrl}save-classdiary';
+    return '${baseUrl}app/save-classdiary';
   }
 
   static String getFeedReportPath(String baseUrl) {
