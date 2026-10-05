@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 class MonthlyAttendanceRequest extends Equatable {
-  MonthlyAttendanceRequest({
+  const MonthlyAttendanceRequest({
     required this.month,
     required this.accYear,
     required this.standardId,
@@ -24,7 +24,6 @@ class MonthlyAttendanceRequest extends Equatable {
   final int branchId;
   static const String branchIdKey = "branchId";
 
-
   MonthlyAttendanceRequest copyWith({
     int? month,
     String? accYear,
@@ -41,7 +40,7 @@ class MonthlyAttendanceRequest extends Equatable {
     );
   }
 
-  factory MonthlyAttendanceRequest.fromJson(Map<String, dynamic> json){
+  factory MonthlyAttendanceRequest.fromJson(Map<String, dynamic> json) {
     return MonthlyAttendanceRequest(
       month: json["month"] ?? 0,
       accYear: json["accYear"] ?? "",
@@ -60,11 +59,10 @@ class MonthlyAttendanceRequest extends Equatable {
   };
 
   @override
-  String toString(){
+  String toString() {
     return "$month, $accYear, $standardId, $divisionId, $branchId, ";
   }
 
   @override
-  List<Object?> get props => [
-    month, accYear, standardId, divisionId, branchId, ];
+  List<Object?> get props => [month, accYear, standardId, divisionId, branchId];
 }

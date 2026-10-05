@@ -10,6 +10,7 @@ import 'package:cristalteacher/features/materials/data/models/fetch_material_mod
 import 'package:cristalteacher/features/materials/data/models/material_details_model.dart';
 import 'package:cristalteacher/features/materials/domain/parameter/fetch_material_parameter.dart';
 import 'package:cristalteacher/features/materials/domain/parameter/save_material_parameter.dart';
+import 'package:cristalteacher/features/materials/domain/parameter/update_material_parameter.dart';
 import 'package:cristalteacher/services/shared_preference_helper.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +20,10 @@ abstract class MaterialRemoteDataSource {
   Future<MasterResponseModel> saveMaterial(SaveMaterialParameter params);
   Future<MasterResponseModel> deleteMaterial(int materialId);
   Future<MaterialDetailsResponseModel> fetchMaterialDetails(int materialId);
+  Future<MasterResponseModel> updateMaterial(
+    int materialId,
+    UpdateMaterialParameter params,
+  );
 }
 
 class MaterialRemoteDataSourceImpl implements MaterialRemoteDataSource {
@@ -98,11 +103,15 @@ class MaterialRemoteDataSourceImpl implements MaterialRemoteDataSource {
         throw Exception('Token missing! Please login again.');
       }
 
+      if (params.standardDivisionList.isEmpty) {
+        throw Exception('Please select at least one class');
+      }
+
       final String url = ApiConstants.saveMaterialPath(baseUrl);
 
       final Options options = await ApiHelper.getAuthOptions(withToken: true);
 
-      // Dio automatically provides the multipart content type and boundary.
+      // Let Dio set the multipart content type and boundary.
       options.contentType = null;
       options.headers?.remove('Content-Type');
       options.headers?.remove('content-type');
@@ -115,24 +124,14 @@ class MaterialRemoteDataSourceImpl implements MaterialRemoteDataSource {
       debugPrint('----------------------------------------------');
 
       final FormData formData = FormData();
-      final List<Map<String, dynamic>> standardDivisionPairs = params
-          .standardDivisionList
-          .map(
-            (pair) => {
-              'StandardId': pair.standardId,
-              'DivisionId': pair.divisionId,
-            },
-          )
-          .toList();
 
-      final String standardDivisionJson = jsonEncode(standardDivisionPairs);
+      final String standardDivisionJson = jsonEncode(
+        params.standardDivisionList.map((pair) => pair.toJson()).toList(),
+      );
 
-      debugPrint('StandardId/DivisionId JSON: $standardDivisionJson');
       formData.fields.addAll([
         MapEntry('StaffId', params.staffId.toString()),
         MapEntry('AccYear', params.accYear),
-        // MapEntry('StandardId', params.standardId.toString()),
-        // MapEntry('DivisionId', params.divisionId.toString()),
         MapEntry('StandardId', standardDivisionJson),
         MapEntry('SubjectId', params.subjectId.toString()),
         MapEntry('branchId', params.branchId.toString()),
@@ -140,68 +139,48 @@ class MaterialRemoteDataSourceImpl implements MaterialRemoteDataSource {
         MapEntry('documentName', params.documentName),
         MapEntry('notes', params.notes),
         MapEntry('link', params.link),
-        MapEntry('favorite', params.favorite ? 'true' : 'false'),
+        MapEntry('favorite', params.favorite.toString()),
       ]);
 
       debugPrint('📌 ADDING MATERIAL FILES');
       debugPrint('----------------------------------------------');
       debugPrint('Selected material count: ${params.materials.length}');
 
-      // Material files are optional.
-      // Documents contain a file, while Links and Notes may have no files.
+      // Notes and links may be submitted without files.
       if (params.materials.isEmpty) {
-        debugPrint(
-          'ℹ️ No material file selected. '
-          'Submitting Notes/Link using text fields only.',
-        );
+        debugPrint('ℹ️ No material files selected.');
       }
 
       for (int index = 0; index < params.materials.length; index++) {
         final File file = params.materials[index];
 
-        debugPrint('');
-        debugPrint('Material file ${index + 1}');
-        debugPrint('Path: ${file.path}');
-
-        final bool exists = await file.exists();
-
-        debugPrint('Exists: $exists');
-
-        if (!exists) {
+        if (!await file.exists()) {
           throw Exception('Selected file does not exist: ${file.path}');
         }
 
         final int fileSize = await file.length();
-        final double fileSizeMb = fileSize / (1024 * 1024);
-
         final String fileName = file.path.split(Platform.pathSeparator).last;
-
-        debugPrint('Filename: $fileName');
-        debugPrint('Size bytes: $fileSize');
-        debugPrint('Size MB: ${fileSizeMb.toStringAsFixed(2)}');
 
         final MultipartFile multipartFile = await MultipartFile.fromFile(
           file.path,
           filename: fileName,
         );
 
-        debugPrint('Multipart filename: ${multipartFile.filename}');
-        debugPrint('Multipart length: ${multipartFile.length}');
-        debugPrint('Multipart content type: ${multipartFile.contentType}');
+        // Repeat the exact field name for each file:
+        // Material: [file]
+        // Material: [file]
+        formData.files.add(MapEntry('Material', multipartFile));
 
-        formData.files.add(MapEntry('Material[]', multipartFile));
-
-        debugPrint('✅ Added with field key: Material[]');
+        debugPrint(
+          '✅ Material ${index + 1}: '
+          '$fileName ($fileSize bytes), field key: Material',
+        );
       }
 
       debugPrint('');
       debugPrint('==============================================');
       debugPrint('📋 FINAL FORMDATA TEXT FIELDS');
       debugPrint('==============================================');
-
-      if (formData.fields.isEmpty) {
-        debugPrint('⚠️ No text fields found');
-      }
 
       for (final MapEntry<String, String> field in formData.fields) {
         debugPrint('${field.key}: ${field.value}');
@@ -213,42 +192,28 @@ class MaterialRemoteDataSourceImpl implements MaterialRemoteDataSource {
       debugPrint('==============================================');
 
       if (formData.files.isEmpty) {
-        debugPrint('ℹ️ No files added. Sending text-only material request.');
+        debugPrint('ℹ️ Sending text-only material request.');
       }
 
-      for (int index = 0; index < formData.files.length; index++) {
-        final MapEntry<String, MultipartFile> entry = formData.files[index];
-
-        debugPrint('File ${index + 1}');
-        debugPrint('Field key    : ${entry.key}');
-        debugPrint('Filename     : ${entry.value.filename}');
-        debugPrint('Length       : ${entry.value.length}');
-        debugPrint('Content type : ${entry.value.contentType}');
-        debugPrint('----------------------------------------------');
+      for (final MapEntry<String, MultipartFile> entry in formData.files) {
+        debugPrint(
+          '${entry.key}: ${entry.value.filename} '
+          '(${entry.value.length} bytes)',
+        );
       }
-
-      debugPrint('Total fields : ${formData.fields.length}');
-      debugPrint('Total files  : ${formData.files.length}');
-
-      debugPrint('');
-      debugPrint('==============================================');
-      debugPrint('📤 CALLING SAVE MATERIAL API');
-      debugPrint('==============================================');
 
       final Response<dynamic> response = await dio.post<dynamic>(
         url,
         data: formData,
         options: options,
         onSendProgress: (int sent, int total) {
-          if (total > 0) {
-            final double percentage = sent / total * 100;
+          if (total <= 0) return;
 
-            debugPrint(
-              '📤 Upload: '
-              '${percentage.toStringAsFixed(1)}% '
-              '($sent/$total bytes)',
-            );
-          }
+          final double percentage = sent / total * 100;
+          debugPrint(
+            '📤 Upload: ${percentage.toStringAsFixed(1)}% '
+            '($sent/$total bytes)',
+          );
         },
       );
 
@@ -258,16 +223,19 @@ class MaterialRemoteDataSourceImpl implements MaterialRemoteDataSource {
       debugPrint('==============================================');
       debugPrint('Status code : ${response.statusCode}');
       debugPrint('Response    : ${response.data}');
-      debugPrint('==============================================');
 
-      if (response.data is! Map<String, dynamic>) {
-        throw Exception('Invalid Save Material API response: ${response.data}');
+      final dynamic responseData = response.data;
+
+      if (responseData is! Map<String, dynamic>) {
+        throw Exception('Invalid Save Material API response: $responseData');
       }
 
-      return MasterResponseModel.fromJson(
-        response.data as Map<String, dynamic>,
-      );
+      return MasterResponseModel.fromJson(responseData);
     } on DioException catch (error, stackTrace) {
+      debugPrint('FETCH MATERIALS HTTP STATUS: ${error.response?.statusCode}');
+      debugPrint('FETCH MATERIALS RESPONSE: ${error.response?.data}');
+      debugPrint('FETCH MATERIALS REQUEST: ${error.requestOptions.data}');
+      debugPrintStack(stackTrace: stackTrace);
       final int? statusCode = error.response?.statusCode;
       final dynamic responseData = error.response?.data;
 
@@ -278,40 +246,27 @@ class MaterialRemoteDataSourceImpl implements MaterialRemoteDataSource {
       debugPrint('URL          : ${error.requestOptions.uri}');
       debugPrint('Method       : ${error.requestOptions.method}');
       debugPrint('Content-Type : ${error.requestOptions.contentType}');
-      debugPrint('Data type    : ${error.requestOptions.data.runtimeType}');
       debugPrint('Status code  : $statusCode');
       debugPrint('Response     : $responseData');
       debugPrint('Error message: ${error.message}');
-      debugPrint('==============================================');
 
       final dynamic failedRequestData = error.requestOptions.data;
 
       if (failedRequestData is FormData) {
-        debugPrint('');
-        debugPrint('==============================================');
         debugPrint('📋 FAILED REQUEST TEXT FIELDS');
-        debugPrint('==============================================');
 
         for (final MapEntry<String, String> field in failedRequestData.fields) {
           debugPrint('${field.key}: ${field.value}');
         }
 
-        debugPrint('');
-        debugPrint('==============================================');
         debugPrint('📁 FAILED REQUEST FILES');
-        debugPrint('==============================================');
-
-        if (failedRequestData.files.isEmpty) {
-          debugPrint('ℹ️ Failed request contained no files.');
-        }
 
         for (final MapEntry<String, MultipartFile> file
             in failedRequestData.files) {
-          debugPrint('Field key    : ${file.key}');
-          debugPrint('Filename     : ${file.value.filename}');
-          debugPrint('Length       : ${file.value.length}');
-          debugPrint('Content type : ${file.value.contentType}');
-          debugPrint('----------------------------------------------');
+          debugPrint(
+            '${file.key}: ${file.value.filename} '
+            '(${file.value.length} bytes)',
+          );
         }
       }
 
@@ -334,17 +289,289 @@ class MaterialRemoteDataSourceImpl implements MaterialRemoteDataSource {
         responseData?.toString() ?? error.message ?? 'Unable to save material',
       );
     } catch (error, stackTrace) {
-      debugPrint('');
-      debugPrint('==============================================');
-      debugPrint('❌ EXCEPTION IN SAVE MATERIAL');
-      debugPrint('==============================================');
-      debugPrint('Error: $error');
+      debugPrint('❌ EXCEPTION IN SAVE MATERIAL: $error');
       debugPrintStack(stackTrace: stackTrace);
-      debugPrint('==============================================');
-
       rethrow;
     }
   }
+  // @override
+  // Future<MasterResponseModel> saveMaterial(SaveMaterialParameter params) async {
+  //   debugPrint('');
+  //   debugPrint('==============================================');
+  //   debugPrint('📘 SAVE MATERIAL API START');
+  //   debugPrint('==============================================');
+
+  //   try {
+  //     final SharedPreferenceHelper preference = SharedPreferenceHelper();
+
+  //     final String? baseUrl = await preference.getBaseUrl();
+  //     final String? token = await preference.getToken();
+  //     final String? databaseName = await preference.getDatabaseName();
+
+  //     debugPrint('📌 PREFERENCE VALUES');
+  //     debugPrint('----------------------------------------------');
+  //     debugPrint('Base URL      : $baseUrl');
+  //     debugPrint('Token exists  : ${token != null && token.isNotEmpty}');
+  //     debugPrint(
+  //       'Database set : ${databaseName != null && databaseName.isNotEmpty}',
+  //     );
+  //     debugPrint('----------------------------------------------');
+
+  //     if (baseUrl == null || baseUrl.trim().isEmpty) {
+  //       throw Exception('Base URL not set');
+  //     }
+
+  //     if (token == null || token.trim().isEmpty) {
+  //       throw Exception('Token missing! Please login again.');
+  //     }
+
+  //     final String url = ApiConstants.saveMaterialPath(baseUrl);
+
+  //     final Options options = await ApiHelper.getAuthOptions(withToken: true);
+
+  //     // Dio automatically provides the multipart content type and boundary.
+  //     options.contentType = null;
+  //     options.headers?.remove('Content-Type');
+  //     options.headers?.remove('content-type');
+
+  //     debugPrint('📌 REQUEST DETAILS');
+  //     debugPrint('----------------------------------------------');
+  //     debugPrint('URL          : $url');
+  //     debugPrint('Method       : POST');
+  //     debugPrint('Content-Type : Multipart FormData');
+  //     debugPrint('----------------------------------------------');
+
+  //     final FormData formData = FormData();
+  //     final List<Map<String, dynamic>> standardDivisionPairs = params
+  //         .standardDivisionList
+  //         .map(
+  //           (pair) => {
+  //             'StandardId': pair.standardId,
+  //             'DivisionId': pair.divisionId,
+  //           },
+  //         )
+  //         .toList();
+
+  //     final String standardDivisionJson = jsonEncode(standardDivisionPairs);
+
+  //     debugPrint('StandardId/DivisionId JSON: $standardDivisionJson');
+  //     formData.fields.addAll([
+  //       MapEntry('StaffId', params.staffId.toString()),
+  //       MapEntry('AccYear', params.accYear),
+  //       // MapEntry('StandardId', params.standardId.toString()),
+  //       // MapEntry('DivisionId', params.divisionId.toString()),
+  //       MapEntry('StandardId', standardDivisionJson),
+  //       MapEntry('SubjectId', params.subjectId.toString()),
+  //       MapEntry('branchId', params.branchId.toString()),
+  //       MapEntry('CreatedUser', params.createdUser),
+  //       MapEntry('documentName', params.documentName),
+  //       MapEntry('notes', params.notes),
+  //       MapEntry('link', params.link),
+  //       MapEntry('favorite', params.favorite ? 'true' : 'false'),
+  //     ]);
+
+  //     debugPrint('📌 ADDING MATERIAL FILES');
+  //     debugPrint('----------------------------------------------');
+  //     debugPrint('Selected material count: ${params.materials.length}');
+
+  //     // Material files are optional.
+  //     // Documents contain a file, while Links and Notes may have no files.
+  //     if (params.materials.isEmpty) {
+  //       debugPrint(
+  //         'ℹ️ No material file selected. '
+  //         'Submitting Notes/Link using text fields only.',
+  //       );
+  //     }
+
+  //     for (int index = 0; index < params.materials.length; index++) {
+  //       final File file = params.materials[index];
+
+  //       debugPrint('');
+  //       debugPrint('Material file ${index + 1}');
+  //       debugPrint('Path: ${file.path}');
+
+  //       final bool exists = await file.exists();
+
+  //       debugPrint('Exists: $exists');
+
+  //       if (!exists) {
+  //         throw Exception('Selected file does not exist: ${file.path}');
+  //       }
+
+  //       final int fileSize = await file.length();
+  //       final double fileSizeMb = fileSize / (1024 * 1024);
+
+  //       final String fileName = file.path.split(Platform.pathSeparator).last;
+
+  //       debugPrint('Filename: $fileName');
+  //       debugPrint('Size bytes: $fileSize');
+  //       debugPrint('Size MB: ${fileSizeMb.toStringAsFixed(2)}');
+
+  //       final MultipartFile multipartFile = await MultipartFile.fromFile(
+  //         file.path,
+  //         filename: fileName,
+  //       );
+
+  //       debugPrint('Multipart filename: ${multipartFile.filename}');
+  //       debugPrint('Multipart length: ${multipartFile.length}');
+  //       debugPrint('Multipart content type: ${multipartFile.contentType}');
+
+  //       formData.files.add(MapEntry('Material[]', multipartFile));
+
+  //       debugPrint('✅ Added with field key: Material[]');
+  //     }
+
+  //     debugPrint('');
+  //     debugPrint('==============================================');
+  //     debugPrint('📋 FINAL FORMDATA TEXT FIELDS');
+  //     debugPrint('==============================================');
+
+  //     if (formData.fields.isEmpty) {
+  //       debugPrint('⚠️ No text fields found');
+  //     }
+
+  //     for (final MapEntry<String, String> field in formData.fields) {
+  //       debugPrint('${field.key}: ${field.value}');
+  //     }
+
+  //     debugPrint('');
+  //     debugPrint('==============================================');
+  //     debugPrint('📁 FINAL FORMDATA FILES');
+  //     debugPrint('==============================================');
+
+  //     if (formData.files.isEmpty) {
+  //       debugPrint('ℹ️ No files added. Sending text-only material request.');
+  //     }
+
+  //     for (int index = 0; index < formData.files.length; index++) {
+  //       final MapEntry<String, MultipartFile> entry = formData.files[index];
+
+  //       debugPrint('File ${index + 1}');
+  //       debugPrint('Field key    : ${entry.key}');
+  //       debugPrint('Filename     : ${entry.value.filename}');
+  //       debugPrint('Length       : ${entry.value.length}');
+  //       debugPrint('Content type : ${entry.value.contentType}');
+  //       debugPrint('----------------------------------------------');
+  //     }
+
+  //     debugPrint('Total fields : ${formData.fields.length}');
+  //     debugPrint('Total files  : ${formData.files.length}');
+
+  //     debugPrint('');
+  //     debugPrint('==============================================');
+  //     debugPrint('📤 CALLING SAVE MATERIAL API');
+  //     debugPrint('==============================================');
+
+  //     final Response<dynamic> response = await dio.post<dynamic>(
+  //       url,
+  //       data: formData,
+  //       options: options,
+  //       onSendProgress: (int sent, int total) {
+  //         if (total > 0) {
+  //           final double percentage = sent / total * 100;
+
+  //           debugPrint(
+  //             '📤 Upload: '
+  //             '${percentage.toStringAsFixed(1)}% '
+  //             '($sent/$total bytes)',
+  //           );
+  //         }
+  //       },
+  //     );
+
+  //     debugPrint('');
+  //     debugPrint('==============================================');
+  //     debugPrint('✅ SAVE MATERIAL RESPONSE');
+  //     debugPrint('==============================================');
+  //     debugPrint('Status code : ${response.statusCode}');
+  //     debugPrint('Response    : ${response.data}');
+  //     debugPrint('==============================================');
+
+  //     if (response.data is! Map<String, dynamic>) {
+  //       throw Exception('Invalid Save Material API response: ${response.data}');
+  //     }
+
+  //     return MasterResponseModel.fromJson(
+  //       response.data as Map<String, dynamic>,
+  //     );
+  //   } on DioException catch (error, stackTrace) {
+  //     final int? statusCode = error.response?.statusCode;
+  //     final dynamic responseData = error.response?.data;
+
+  //     debugPrint('');
+  //     debugPrint('==============================================');
+  //     debugPrint('❌ SAVE MATERIAL DIO EXCEPTION');
+  //     debugPrint('==============================================');
+  //     debugPrint('URL          : ${error.requestOptions.uri}');
+  //     debugPrint('Method       : ${error.requestOptions.method}');
+  //     debugPrint('Content-Type : ${error.requestOptions.contentType}');
+  //     debugPrint('Data type    : ${error.requestOptions.data.runtimeType}');
+  //     debugPrint('Status code  : $statusCode');
+  //     debugPrint('Response     : $responseData');
+  //     debugPrint('Error message: ${error.message}');
+  //     debugPrint('==============================================');
+
+  //     final dynamic failedRequestData = error.requestOptions.data;
+
+  //     if (failedRequestData is FormData) {
+  //       debugPrint('');
+  //       debugPrint('==============================================');
+  //       debugPrint('📋 FAILED REQUEST TEXT FIELDS');
+  //       debugPrint('==============================================');
+
+  //       for (final MapEntry<String, String> field in failedRequestData.fields) {
+  //         debugPrint('${field.key}: ${field.value}');
+  //       }
+
+  //       debugPrint('');
+  //       debugPrint('==============================================');
+  //       debugPrint('📁 FAILED REQUEST FILES');
+  //       debugPrint('==============================================');
+
+  //       if (failedRequestData.files.isEmpty) {
+  //         debugPrint('ℹ️ Failed request contained no files.');
+  //       }
+
+  //       for (final MapEntry<String, MultipartFile> file
+  //           in failedRequestData.files) {
+  //         debugPrint('Field key    : ${file.key}');
+  //         debugPrint('Filename     : ${file.value.filename}');
+  //         debugPrint('Length       : ${file.value.length}');
+  //         debugPrint('Content type : ${file.value.contentType}');
+  //         debugPrint('----------------------------------------------');
+  //       }
+  //     }
+
+  //     debugPrintStack(stackTrace: stackTrace);
+
+  //     if (statusCode == 413) {
+  //       throw Exception(
+  //         'The server rejected the upload because '
+  //         'the complete request is too large.',
+  //       );
+  //     }
+
+  //     if (responseData is Map<String, dynamic>) {
+  //       throw ServerException(
+  //         errorMessageModel: ErrorMessageModel.fromJson(responseData),
+  //       );
+  //     }
+
+  //     throw Exception(
+  //       responseData?.toString() ?? error.message ?? 'Unable to save material',
+  //     );
+  //   } catch (error, stackTrace) {
+  //     debugPrint('');
+  //     debugPrint('==============================================');
+  //     debugPrint('❌ EXCEPTION IN SAVE MATERIAL');
+  //     debugPrint('==============================================');
+  //     debugPrint('Error: $error');
+  //     debugPrintStack(stackTrace: stackTrace);
+  //     debugPrint('==============================================');
+
+  //     rethrow;
+  //   }
+  // }
 
   @override
   Future<MasterResponseModel> deleteMaterial(int materialId) async {
@@ -512,6 +739,138 @@ class MaterialRemoteDataSourceImpl implements MaterialRemoteDataSource {
       debugPrint('Error: $error');
       debugPrintStack(stackTrace: stackTrace);
 
+      rethrow;
+    }
+  }
+
+  @override
+  Future<MasterResponseModel> updateMaterial(
+    int materialId,
+    UpdateMaterialParameter params,
+  ) async {
+    debugPrint('📘 UPDATE MATERIAL API START');
+
+    try {
+      final preference = SharedPreferenceHelper();
+
+      final String? baseUrl = await preference.getBaseUrl();
+      final String? token = await preference.getToken();
+
+      if (baseUrl == null || baseUrl.trim().isEmpty) {
+        throw Exception('Base URL not set');
+      }
+
+      if (token == null || token.trim().isEmpty) {
+        throw Exception('Token missing! Please login again.');
+      }
+
+      if (materialId <= 0) {
+        throw Exception('Invalid material ID');
+      }
+
+      if (params.standardDivisionList.isEmpty) {
+        throw Exception('Please select at least one class');
+      }
+
+      // This helper must use your backend's actual update route.
+      final String url = ApiConstants.updateMaterialPath(baseUrl, materialId);
+
+      final Options options = await ApiHelper.getAuthOptions(withToken: true);
+
+      // Let Dio set the multipart content type and boundary.
+      options.contentType = null;
+      options.headers?.remove('Content-Type');
+      options.headers?.remove('content-type');
+
+      for (final File file in params.materials) {
+        if (!await file.exists()) {
+          throw Exception('Selected file does not exist: ${file.path}');
+        }
+      }
+
+      final FormData formData = await params.toFormData();
+
+      debugPrint('Material ID : $materialId');
+      debugPrint('URL         : $url');
+      debugPrint('Method      : POST');
+
+      for (final field in formData.fields) {
+        debugPrint('${field.key}: ${field.value}');
+      }
+
+      for (final file in formData.files) {
+        debugPrint(
+          '${file.key}: ${file.value.filename} '
+          '(${file.value.length} bytes)',
+        );
+      }
+
+      final Response<dynamic> response = await dio.post<dynamic>(
+        url,
+        data: formData,
+        options: options,
+        onSendProgress: (int sent, int total) {
+          if (total <= 0) return;
+
+          debugPrint(
+            '📤 Update upload: '
+            '${(sent / total * 100).toStringAsFixed(1)}%',
+          );
+        },
+      );
+
+      debugPrint('✅ UPDATE MATERIAL RESPONSE');
+      debugPrint('Status code : ${response.statusCode}');
+      debugPrint('Response    : ${response.data}');
+
+      final dynamic responseData = response.data;
+
+      if (responseData is! Map) {
+        throw Exception('Invalid Update Material API response: $responseData');
+      }
+
+      final json = Map<String, dynamic>.from(responseData);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return MasterResponseModel.fromJson(json);
+      }
+
+      throw ServerException(
+        errorMessageModel: ErrorMessageModel.fromJson(json),
+      );
+    } on DioException catch (error, stackTrace) {
+      final dynamic responseData = error.response?.data;
+
+      debugPrint('❌ UPDATE MATERIAL DIO EXCEPTION');
+      debugPrint('URL         : ${error.requestOptions.uri}');
+      debugPrint('Status code : ${error.response?.statusCode}');
+      debugPrint('Response    : $responseData');
+      debugPrint('Error       : ${error.message}');
+      debugPrintStack(stackTrace: stackTrace);
+
+      if (error.response?.statusCode == 413) {
+        throw Exception(
+          'The server rejected the upload because '
+          'the complete request is too large.',
+        );
+      }
+
+      if (responseData is Map) {
+        throw ServerException(
+          errorMessageModel: ErrorMessageModel.fromJson(
+            Map<String, dynamic>.from(responseData),
+          ),
+        );
+      }
+
+      throw Exception(
+        responseData?.toString() ??
+            error.message ??
+            'Unable to update material',
+      );
+    } catch (error, stackTrace) {
+      debugPrint('❌ EXCEPTION IN UPDATE MATERIAL: $error');
+      debugPrintStack(stackTrace: stackTrace);
       rethrow;
     }
   }

@@ -68,6 +68,7 @@ import 'package:cristalteacher/features/materials/domain/usecases/delete_materia
 import 'package:cristalteacher/features/materials/domain/usecases/fetch_material_details_usecase.dart';
 import 'package:cristalteacher/features/materials/domain/usecases/fetch_material_usecase.dart';
 import 'package:cristalteacher/features/materials/domain/usecases/save_material_usecase.dart';
+import 'package:cristalteacher/features/materials/domain/usecases/update_mateial_usecase.dart';
 import 'package:cristalteacher/features/materials/presentation/cubit/material_cubit.dart';
 import 'package:cristalteacher/features/timetable/data/datasources/timetable_remote_datasource.dart';
 import 'package:cristalteacher/features/timetable/data/repositories/teacher_timetable_repository_impl.dart';
@@ -201,6 +202,7 @@ Future<void> init() async {
       saveMaterialUseCase: sl(),
       deleteMaterialUseCase: sl(),
       fetchMaterialDetailsUseCase: sl(),
+      updateMaterialUseCase: sl(),
     ),
   );
 
@@ -209,6 +211,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => SaveMaterialUseCase(sl()));
   sl.registerLazySingleton(() => DeleteMaterialUseCase(sl()));
   sl.registerLazySingleton(() => FetchMaterialDetailsUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateMaterialUseCase(sl()));
 
   /// Repository
   sl.registerLazySingleton<MaterialRepository>(

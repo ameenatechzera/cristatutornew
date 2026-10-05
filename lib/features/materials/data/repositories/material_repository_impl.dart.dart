@@ -1,6 +1,7 @@
 import 'package:cristalteacher/core/errors/failure.dart';
 import 'package:cristalteacher/features/materials/data/datasources/materials_remote_data_source.dart';
 import 'package:cristalteacher/features/materials/domain/entities/material_details_entity.dart';
+import 'package:cristalteacher/features/materials/domain/parameter/update_material_parameter.dart';
 import 'package:cristalteacher/features/materials/domain/repository/material_repository.dart';
 import 'package:dartz/dartz.dart';
 import 'package:cristalteacher/core/errors/exceptions.dart';
@@ -58,6 +59,20 @@ class MaterialRepositoryImpl implements MaterialRepository {
   ) async {
     try {
       final result = await remoteDataSource.fetchMaterialDetails(id);
+
+      return Right(result);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.errorMessageModel.statusMessage));
+    }
+  }
+
+  @override
+  ResultFuture<MasterResponseModel> updateMaterial(
+    int materialId,
+    UpdateMaterialParameter params,
+  ) async {
+    try {
+      final result = await remoteDataSource.updateMaterial(materialId, params);
 
       return Right(result);
     } on ServerException catch (e) {

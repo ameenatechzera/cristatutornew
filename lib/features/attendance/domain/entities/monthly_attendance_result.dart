@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 class MonthlyAttendanceResult extends Equatable {
-  MonthlyAttendanceResult({
+  const MonthlyAttendanceResult({
     required this.status,
     required this.error,
     required this.message,
@@ -20,7 +20,6 @@ class MonthlyAttendanceResult extends Equatable {
   final List<Map<String, String>> data;
   static const String dataKey = "data";
 
-
   MonthlyAttendanceResult copyWith({
     int? status,
     bool? error,
@@ -35,12 +34,20 @@ class MonthlyAttendanceResult extends Equatable {
     );
   }
 
-  factory MonthlyAttendanceResult.fromJson(Map<String, dynamic> json){
+  factory MonthlyAttendanceResult.fromJson(Map<String, dynamic> json) {
     return MonthlyAttendanceResult(
       status: json["status"] ?? 0,
       error: json["error"] ?? false,
       message: json["message"] ?? "",
-      data: json["data"] == null ? [] : List<Map<String, String>>.from(json["data"]!.map((x) => Map.from(x).map((k, v) => MapEntry<String, String>(k, v ?? "")))),
+      data: json["data"] == null
+          ? []
+          : List<Map<String, String>>.from(
+              json["data"]!.map(
+                (x) => Map.from(
+                  x,
+                ).map((k, v) => MapEntry<String, String>(k, v ?? "")),
+              ),
+            ),
     );
   }
 
@@ -48,15 +55,16 @@ class MonthlyAttendanceResult extends Equatable {
     "status": status,
     "error": error,
     "message": message,
-    "data": data.map((x) => Map.from(x).map((k, v) => MapEntry<String, dynamic>(k, v))).toList(),
+    "data": data
+        .map((x) => Map.from(x).map((k, v) => MapEntry<String, dynamic>(k, v)))
+        .toList(),
   };
 
   @override
-  String toString(){
+  String toString() {
     return "$status, $error, $message, $data, ";
   }
 
   @override
-  List<Object?> get props => [
-    status, error, message, data, ];
+  List<Object?> get props => [status, error, message, data];
 }

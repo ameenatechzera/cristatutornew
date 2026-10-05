@@ -1,6 +1,6 @@
 import 'package:cristalteacher/core/utils/custom_dropdown_field.dart';
-import 'package:cristalteacher/features/attendance/data/models/monthModel.dart';
-import 'package:cristalteacher/features/attendance/domain/parameters/monthlyAttendanceRequest.dart';
+import 'package:cristalteacher/features/attendance/data/models/month_model.dart';
+import 'package:cristalteacher/features/attendance/domain/parameters/monthly_attendance_request.dart';
 import 'package:cristalteacher/features/attendance/presentation/cubit/attendance_cubit.dart';
 import 'package:cristalteacher/features/attendance/presentation/widgets/attendanceRowWrapper.dart';
 import 'package:cristalteacher/features/authentication/domain/entities/class_details_entity.dart';
@@ -32,7 +32,8 @@ class MonthlyAttendanceScreen extends StatefulWidget {
   static const double _dayColWidth = 40;
 
   @override
-  State<MonthlyAttendanceScreen> createState() => _MonthlyAttendanceScreenState();
+  State<MonthlyAttendanceScreen> createState() =>
+      _MonthlyAttendanceScreenState();
 }
 
 List<TutorshipClass> tutorshipClasses = [];
@@ -79,7 +80,8 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
       }
     }
 
-    selectedMonthId = currentMonthEntry?.monthId ??
+    selectedMonthId =
+        currentMonthEntry?.monthId ??
         (monthList.isNotEmpty ? monthList.first.monthId : null);
     // -----------------------------------------------------
 
@@ -121,14 +123,22 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
       divisionId: selectedDivisionId,
       branchId: 1,
     );
-    context.read<AttendanceCubit>().fetchMonthlyAttendanceReport(_currentRequest);
+    context.read<AttendanceCubit>().fetchMonthlyAttendanceReport(
+      _currentRequest,
+    );
 
     // Keep the table and the totals bar scrolling in lockstep.
     _tableHorizontalController.addListener(() {
-      _syncHorizontalScroll(_tableHorizontalController, _totalsHorizontalController);
+      _syncHorizontalScroll(
+        _tableHorizontalController,
+        _totalsHorizontalController,
+      );
     });
     _totalsHorizontalController.addListener(() {
-      _syncHorizontalScroll(_totalsHorizontalController, _tableHorizontalController);
+      _syncHorizontalScroll(
+        _totalsHorizontalController,
+        _tableHorizontalController,
+      );
     });
   }
 
@@ -155,7 +165,9 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
       divisionId: selectedDivisionId,
       branchId: 1,
     );
-    context.read<AttendanceCubit>().fetchMonthlyAttendanceReport(_currentRequest);
+    context.read<AttendanceCubit>().fetchMonthlyAttendanceReport(
+      _currentRequest,
+    );
   }
 
   void _selectAcademicYear(String? accYear) {
@@ -256,8 +268,14 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
         elevation: 0,
         titleSpacing: 0,
         leading: const Icon(Icons.arrow_back, color: Colors.white),
-        title: const Text('Attendance Report',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 18)),
+        title: const Text(
+          'Attendance Report',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
+          ),
+        ),
         // centerTitle: true,
         actions: [
           // Padding(
@@ -315,7 +333,10 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
                   SizedBox(width: 8),
                   Expanded(
                     child: TextField(
-                      decoration: InputDecoration(hintText: 'Search', border: InputBorder.none),
+                      decoration: InputDecoration(
+                        hintText: 'Search',
+                        border: InputBorder.none,
+                      ),
                     ),
                   ),
                 ],
@@ -330,9 +351,9 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
             child: BlocConsumer<AttendanceCubit, AttendanceState>(
               listener: (context, state) {
                 if (state is MonthlyAttendanceReportFailure) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(state.message)),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(state.message)));
                 }
               },
               builder: (context, state) {
@@ -347,7 +368,11 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.error_outline, color: Colors.redAccent, size: 40),
+                          const Icon(
+                            Icons.error_outline,
+                            color: Colors.redAccent,
+                            size: 40,
+                          ),
                           const SizedBox(height: 12),
                           Text(state.message, textAlign: TextAlign.center),
                           const SizedBox(height: 12),
@@ -376,18 +401,28 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
                   _currentRequest.month,
                   _currentRequest.accYear,
                 );
-                final students = AttendanceRowMapper.mapRows(result.data, columns);
+                final students = AttendanceRowMapper.mapRows(
+                  result.data,
+                  columns,
+                );
 
                 if (columns.isEmpty || students.isEmpty) {
-                  return const Center(child: Text('No attendance data for this selection.'));
+                  return const Center(
+                    child: Text('No attendance data for this selection.'),
+                  );
                 }
 
-                final presentTotals =
-                AttendanceRowMapper.presentTotalsPerDay(students, columns.length);
-                final absentTotals =
-                AttendanceRowMapper.absentTotalsPerDay(students, columns.length);
+                final presentTotals = AttendanceRowMapper.presentTotalsPerDay(
+                  students,
+                  columns.length,
+                );
+                final absentTotals = AttendanceRowMapper.absentTotalsPerDay(
+                  students,
+                  columns.length,
+                );
 
-                final double rowWidth = MonthlyAttendanceScreen._nameColWidth +
+                final double rowWidth =
+                    MonthlyAttendanceScreen._nameColWidth +
                     MonthlyAttendanceScreen._dayColWidth * columns.length;
 
                 return Column(
@@ -402,8 +437,10 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
                             children: [
                               _HeaderRow(
                                 columns: columns,
-                                nameColWidth: MonthlyAttendanceScreen._nameColWidth,
-                                dayColWidth: MonthlyAttendanceScreen._dayColWidth,
+                                nameColWidth:
+                                    MonthlyAttendanceScreen._nameColWidth,
+                                dayColWidth:
+                                    MonthlyAttendanceScreen._dayColWidth,
                               ),
                               Expanded(
                                 child: ListView.builder(
@@ -412,8 +449,10 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
                                     student: students[index],
                                     columns: columns,
                                     index: index,
-                                    nameColWidth: MonthlyAttendanceScreen._nameColWidth,
-                                    dayColWidth: MonthlyAttendanceScreen._dayColWidth,
+                                    nameColWidth:
+                                        MonthlyAttendanceScreen._nameColWidth,
+                                    dayColWidth:
+                                        MonthlyAttendanceScreen._dayColWidth,
                                   ),
                                 ),
                               ),
@@ -443,14 +482,16 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
                                 totals: presentTotals,
                                 columns: columns,
                                 colWidth: MonthlyAttendanceScreen._dayColWidth,
-                                nameColWidth: MonthlyAttendanceScreen._nameColWidth,
+                                nameColWidth:
+                                    MonthlyAttendanceScreen._nameColWidth,
                               ),
                               _TotalsRow(
                                 label: 'Absent',
                                 totals: absentTotals,
                                 columns: columns,
                                 colWidth: MonthlyAttendanceScreen._dayColWidth,
-                                nameColWidth: MonthlyAttendanceScreen._nameColWidth,
+                                nameColWidth:
+                                    MonthlyAttendanceScreen._nameColWidth,
                               ),
                             ],
                           ),
@@ -490,21 +531,26 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
         onTap: items.isEmpty
             ? null
             : () async {
-          final PickerSelection<String>? result = await showOptionPickerSheet<String>(
-            context: context,
-            title: 'Select Academic Year',
-            items: items,
-            selectedValue: selectedAccYear,
-          );
+                final PickerSelection<String>? result =
+                    await showOptionPickerSheet<String>(
+                      context: context,
+                      title: 'Select Academic Year',
+                      items: items,
+                      selectedValue: selectedAccYear,
+                    );
 
-          if (!mounted || result == null) return;
-          _selectAcademicYear(result.value);
-        },
+                if (!mounted || result == null) return;
+                _selectAcademicYear(result.value);
+              },
         child: Row(
           children: [
             Expanded(
-              child: selectedItem?.child ??
-                  const Text('Select', style: TextStyle(fontSize: 14, color: Color(0xFF777777))),
+              child:
+                  selectedItem?.child ??
+                  const Text(
+                    'Select',
+                    style: TextStyle(fontSize: 14, color: Color(0xFF777777)),
+                  ),
             ),
             const Icon(Icons.keyboard_arrow_down, color: Colors.black45),
           ],
@@ -536,21 +582,26 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
         onTap: items.isEmpty
             ? null
             : () async {
-          final PickerSelection<int>? result = await showOptionPickerSheet<int>(
-            context: context,
-            title: 'Select Month',
-            items: items,
-            selectedValue: selectedMonthId,
-          );
+                final PickerSelection<int>? result =
+                    await showOptionPickerSheet<int>(
+                      context: context,
+                      title: 'Select Month',
+                      items: items,
+                      selectedValue: selectedMonthId,
+                    );
 
-          if (!mounted || result == null) return;
-          _selectMonth(result.value!);
-        },
+                if (!mounted || result == null) return;
+                _selectMonth(result.value!);
+              },
         child: Row(
           children: [
             Expanded(
-              child: selectedItem?.child ??
-                  const Text('Select', style: TextStyle(fontSize: 14, color: Color(0xFF777777))),
+              child:
+                  selectedItem?.child ??
+                  const Text(
+                    'Select',
+                    style: TextStyle(fontSize: 14, color: Color(0xFF777777)),
+                  ),
             ),
             const Icon(Icons.keyboard_arrow_down, color: Colors.black45),
           ],
@@ -582,21 +633,26 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
         onTap: items.isEmpty
             ? null
             : () async {
-          final PickerSelection<int>? result = await showOptionPickerSheet<int>(
-            context: context,
-            title: 'Select Standard',
-            items: items,
-            selectedValue: selectedStandardId,
-          );
+                final PickerSelection<int>? result =
+                    await showOptionPickerSheet<int>(
+                      context: context,
+                      title: 'Select Standard',
+                      items: items,
+                      selectedValue: selectedStandardId,
+                    );
 
-          if (!mounted || result == null) return;
-          _selectStandard(result.value);
-        },
+                if (!mounted || result == null) return;
+                _selectStandard(result.value);
+              },
         child: Row(
           children: [
             Expanded(
-              child: selectedItem?.child ??
-                  const Text('Select', style: TextStyle(fontSize: 14, color: Color(0xFF777777))),
+              child:
+                  selectedItem?.child ??
+                  const Text(
+                    'Select',
+                    style: TextStyle(fontSize: 14, color: Color(0xFF777777)),
+                  ),
             ),
             const Icon(Icons.keyboard_arrow_down, color: Colors.black45),
           ],
@@ -628,21 +684,26 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
         onTap: items.isEmpty
             ? null
             : () async {
-          final PickerSelection<int>? result = await showOptionPickerSheet<int>(
-            context: context,
-            title: 'Select Division',
-            items: items,
-            selectedValue: selectedDivisionId,
-          );
+                final PickerSelection<int>? result =
+                    await showOptionPickerSheet<int>(
+                      context: context,
+                      title: 'Select Division',
+                      items: items,
+                      selectedValue: selectedDivisionId,
+                    );
 
-          if (!mounted || result == null) return;
-          _selectDivision(result.value);
-        },
+                if (!mounted || result == null) return;
+                _selectDivision(result.value);
+              },
         child: Row(
           children: [
             Expanded(
-              child: selectedItem?.child ??
-                  const Text('Select', style: TextStyle(fontSize: 14, color: Color(0xFF777777))),
+              child:
+                  selectedItem?.child ??
+                  const Text(
+                    'Select',
+                    style: TextStyle(fontSize: 14, color: Color(0xFF777777)),
+                  ),
             ),
             const Icon(Icons.keyboard_arrow_down, color: Colors.black45),
           ],
@@ -677,7 +738,8 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
         continue;
       }
 
-      for (final DivisionDetails division in item.division ?? const <DivisionDetails>[]) {
+      for (final DivisionDetails division
+          in item.division ?? const <DivisionDetails>[]) {
         if (division.divisionId != null) {
           unique.putIfAbsent(division.divisionId!, () => division);
         }
@@ -710,10 +772,7 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
   }
 }
 
-Widget _buildDropdownContainer({
-  required String label,
-  required Widget child,
-}) {
+Widget _buildDropdownContainer({required String label, required Widget child}) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -755,15 +814,23 @@ class _FilterBox extends StatelessWidget {
     return Container(
       height: 44,
       padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+      ),
       child: Row(
         children: [
           Icon(icon, size: 18, color: _purple),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(label,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w500)),
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.black87,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
           const Icon(Icons.keyboard_arrow_down, color: Colors.black45),
         ],
@@ -776,7 +843,11 @@ class _HeaderRow extends StatelessWidget {
   final List<DayColumn> columns;
   final double nameColWidth;
   final double dayColWidth;
-  const _HeaderRow({required this.columns, required this.nameColWidth, required this.dayColWidth});
+  const _HeaderRow({
+    required this.columns,
+    required this.nameColWidth,
+    required this.dayColWidth,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -791,7 +862,10 @@ class _HeaderRow extends StatelessWidget {
               padding: EdgeInsets.only(left: 16),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text('Student', style: TextStyle(color: _purple, fontWeight: FontWeight.w600)),
+                child: Text(
+                  'Student',
+                  style: TextStyle(color: _purple, fontWeight: FontWeight.w600),
+                ),
               ),
             ),
           ),
@@ -801,14 +875,21 @@ class _HeaderRow extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(col.dateLabel,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: col.isSunday ? Colors.black26 : _purpleDark,
-                      )),
-                  Text(col.dayLabel,
-                      style: TextStyle(fontSize: 10, color: col.isSunday ? Colors.black26 : Colors.black45)),
+                  Text(
+                    col.dateLabel,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: col.isSunday ? Colors.black26 : _purpleDark,
+                    ),
+                  ),
+                  Text(
+                    col.dayLabel,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: col.isSunday ? Colors.black26 : Colors.black45,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -852,7 +933,11 @@ class _StudentRow extends StatelessWidget {
                     backgroundColor: student.avatarColor,
                     child: Text(
                       student.initial,
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -861,7 +946,10 @@ class _StudentRow extends StatelessWidget {
                       student.name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
@@ -902,7 +990,10 @@ class _StatusChip extends StatelessWidget {
       height: 26,
       alignment: Alignment.center,
       decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
-      child: Text(label, style: TextStyle(color: fg, fontWeight: FontWeight.bold, fontSize: 12)),
+      child: Text(
+        label,
+        style: TextStyle(color: fg, fontWeight: FontWeight.bold, fontSize: 12),
+      ),
     );
   }
 }
@@ -939,7 +1030,13 @@ class _TotalsRow extends StatelessWidget {
             width: nameColWidth,
             child: Padding(
               padding: const EdgeInsets.only(left: 16),
-              child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ),
           for (int i = 0; i < totals.length; i++)
@@ -948,8 +1045,13 @@ class _TotalsRow extends StatelessWidget {
               child: Center(
                 child: columns[i].isSunday
                     ? const Text('—', style: TextStyle(color: Colors.white38))
-                    : Text('${totals[i]}',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    : Text(
+                        '${totals[i]}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
             ),
         ],

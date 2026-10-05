@@ -1,9 +1,6 @@
-
 class SaveDiaryParameter {
   final String accYear;
   final List<DiaryStandardParameter> standardId;
-  final List<DiaryDivisionParameter> divisionId;
-
   final int subjectId;
   final int employeeId;
   final String diaryType;
@@ -21,7 +18,6 @@ class SaveDiaryParameter {
   const SaveDiaryParameter({
     required this.accYear,
     required this.standardId,
-    required this.divisionId,
     required this.subjectId,
     required this.employeeId,
     required this.diaryType,
@@ -36,58 +32,19 @@ class SaveDiaryParameter {
     required this.videoUrl,
     required this.files,
   });
-  //
-  // Map<String, dynamic> toJson() {
-  //   return {
-  //     'AccYear': accYear,
-  //     'StandardId': standardId
-  //         .map((DiaryStandardParameter item) => item.toJson())
-  //         .toList(),
-  //     'DivisionId': divisionId
-  //         .map((DiaryDivisionParameter item) => item.toJson())
-  //         .toList(),
-  //     'SubjectId': subjectId,
-  //     'EmployeeId': employeeId,
-  //     'diaryType': diaryType,
-  //     'diaryTitle': diaryTitle,
-  //     'Description': description,
-  //     'diaryDate': diaryDate,
-  //     'dueDate': dueDate,
-  //     'isActive': isActive,
-  //     'isFavourite': isFavourite,
-  //     'branchId': branchId,
-  //     'CreatedUser': createdUser,
-  //     'videoUrl': videoUrl,
-  //     'files': files,
-  //   };
-  // }
 }
 
 class DiaryStandardParameter {
   final int standardId;
- // final int divisionId;
+  final int divisionId;
 
   const DiaryStandardParameter({
     required this.standardId,
-   // required this.divisionId,
-  });
-
-  // Map<String, dynamic> toJson() {
-  //   return {'StandardId': standardId};
-  // }
-  Map<String, dynamic> toJson() => {
-    'StandardId': standardId,
-  };
-
-}
-class DiaryDivisionParameter {
-  final int divisionId;
-
-  const DiaryDivisionParameter({
     required this.divisionId,
   });
 
-  Map<String, dynamic> toJson()=> {
-     'DivisionId': divisionId,
+  Map<String, dynamic> toJson() => {
+    'StandardId': standardId,
+    'DivisionId': divisionId,
   };
 }

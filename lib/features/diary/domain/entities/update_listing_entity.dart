@@ -15,8 +15,9 @@ class DiaryUpdateListingEntity {
 class DiaryUpdateListingData {
   final int? diaryId;
   final String? accYear;
-  final int? standardId;
-  final int? divisionId;
+  final List<DiaryStandardDivisionEntity>? standardDivision;
+  // final int? standardId;
+  // final int? divisionId;
   final int? subjectId;
   final int? employeeId;
   final int? diaryType;
@@ -35,8 +36,7 @@ class DiaryUpdateListingData {
   const DiaryUpdateListingData({
     this.diaryId,
     this.accYear,
-    this.standardId,
-    this.divisionId,
+    this.standardDivision,
     this.subjectId,
     this.employeeId,
     this.diaryType,
@@ -51,5 +51,19 @@ class DiaryUpdateListingData {
     this.createdUser,
     this.files,
     this.videoUrl,
+  });
+}
+
+class DiaryStandardDivisionEntity {
+  final int standardId;
+  final String? standard;
+  final int divisionId;
+  final String? division;
+
+  const DiaryStandardDivisionEntity({
+    required this.standardId,
+    this.standard,
+    required this.divisionId,
+    this.division,
   });
 }

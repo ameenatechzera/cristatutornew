@@ -77,8 +77,7 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
       print(request.toJson());
 
       print('branchId    : ${request.branchId}');
-      print('standardId  : ${request.standardId}');
-      print('divisionId  : ${request.divisionId}');
+      print('standardId  : ${request.subjectId}');
       print('accyear     : ${request.accyear}');
       print('fromDate    : ${request.fromDate}');
       print('toDate      : ${request.toDate}');
@@ -505,6 +504,349 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
   //     rethrow;
   //   }
   // }
+  // @override
+  // Future<MasterResponseModel> saveDiary(SaveDiaryParameter params) async {
+  //   debugPrint('');
+  //   debugPrint('==========================================');
+  //   debugPrint('🟢 SAVE DIARY START');
+  //   debugPrint('==========================================');
+
+  //   try {
+  //     final SharedPreferenceHelper preference = SharedPreferenceHelper();
+
+  //     final String? baseUrl = await preference.getBaseUrl();
+  //     final String? databaseName = await preference.getDatabaseName();
+  //     final String? token = await preference.getToken();
+
+  //     if (baseUrl == null || baseUrl.trim().isEmpty) {
+  //       throw Exception('Base URL not set');
+  //     }
+
+  //     if (token == null || token.trim().isEmpty) {
+  //       throw Exception('Token missing! Please login again.');
+  //     }
+
+  //     if (params.standardId.isEmpty) {
+  //       throw Exception('Please select at least one class');
+  //     }
+
+  //     final String url = ApiConstants.getSaveDiaryPath(baseUrl);
+
+  //     debugPrint('🟢 Base URL: $baseUrl');
+  //     debugPrint('🟢 DB Name: $databaseName');
+  //     debugPrint('🟢 API URL: $url');
+  //     final List<Map<String, dynamic>> standardPairs = params.standardId
+  //         .map((pair) => {'StandardId': pair.standardId})
+  //         .toList();
+  //     final List<Map<String, dynamic>> divisionPairs = params.divisionId
+  //         .map((pair) => {'DivisionId': pair.divisionId})
+  //         .toList();
+  //     final String standardJson = jsonEncode(standardPairs);
+  //     final String divisionJson = jsonEncode(divisionPairs);
+  //     final FormData formData = FormData();
+
+  //     formData.fields.addAll([
+  //       MapEntry('AccYear', params.accYear),
+  //       MapEntry('SubjectId', params.subjectId.toString()),
+  //       MapEntry('EmployeeId', params.employeeId.toString()),
+  //       MapEntry('StandardId', standardJson),
+  //       MapEntry('DivisionId', divisionJson),
+  //       MapEntry('diaryType', "1"),
+  //       MapEntry('diaryTitle', params.diaryTitle),
+  //       MapEntry('Description', params.description),
+  //       MapEntry('diaryDate', params.diaryDate),
+  //       MapEntry('dueDate', params.dueDate),
+  //       MapEntry('isActive', params.isActive.toString()),
+  //       MapEntry('isFavourite', params.isFavourite.toString()),
+  //       MapEntry('branchId', params.branchId.toString()),
+  //       MapEntry('CreatedUser', params.createdUser.toString()),
+  //       MapEntry('videoUrl', params.videoUrl),
+  //     ]);
+
+  //     /*
+  //      * Send StandardId and DivisionId as parallel arrays, one entry per
+  //      * selected class-division pair, instead of a single JSON string.
+  //      *
+  //      * e.g. for two selected classes:
+  //      *   StandardId[]=1   DivisionId[]=1
+  //      *   StandardId[]=2   DivisionId[]=3
+  //      */
+
+  //     debugPrint('');
+  //     debugPrint('==========================================');
+  //     debugPrint('🟢 FORM FIELDS');
+  //     debugPrint('==========================================');
+
+  //     for (final MapEntry<String, String> field in formData.fields) {
+  //       debugPrint('${field.key}: ${field.value}');
+  //     }
+
+  //     debugPrint('');
+  //     debugPrint('==========================================');
+  //     debugPrint('🟡 PROCESSING FILES');
+  //     debugPrint('==========================================');
+  //     debugPrint('🟡 Files Found: ${params.files.length}');
+
+  //     for (int index = 0; index < params.files.length; index++) {
+  //       final String fileString = params.files[index].trim();
+
+  //       if (fileString.isEmpty) {
+  //         debugPrint('⚠️ File ${index + 1} is empty. Skipping.');
+  //         continue;
+  //       }
+
+  //       debugPrint('');
+  //       debugPrint('------------------------------------------');
+  //       debugPrint('🟡 Processing File ${index + 1}');
+  //       debugPrint('------------------------------------------');
+  //       debugPrint('🟡 File String Length: ${fileString.length}');
+
+  //       String base64String;
+  //       String fileName;
+  //       String detectedContentType;
+
+  //       if (!fileString.startsWith('data:')) {
+  //         throw Exception(
+  //           'File ${index + 1} does not contain its file type. '
+  //           'The file must use a data URI such as '
+  //           'data:image/jpeg;base64,...',
+  //         );
+  //       }
+
+  //       final int commaIndex = fileString.indexOf(',');
+
+  //       if (commaIndex == -1) {
+  //         throw Exception('Invalid Base64 format for file ${index + 1}');
+  //       }
+
+  //       final String header = fileString.substring(0, commaIndex);
+
+  //       base64String = fileString.substring(commaIndex + 1);
+
+  //       debugPrint('🟡 File Header: $header');
+
+  //       if (!header.contains(';base64')) {
+  //         throw Exception('File ${index + 1} is not Base64 encoded');
+  //       }
+
+  //       if (header.contains('image/jpeg')) {
+  //         fileName = 'diary_file_${index + 1}.jpg';
+  //         detectedContentType = 'image/jpeg';
+  //       } else if (header.contains('image/png')) {
+  //         fileName = 'diary_file_${index + 1}.png';
+  //         detectedContentType = 'image/png';
+  //       } else if (header.contains('image/webp')) {
+  //         fileName = 'diary_file_${index + 1}.webp';
+  //         detectedContentType = 'image/webp';
+  //       } else if (header.contains('audio/mpeg') ||
+  //           header.contains('audio/mp3')) {
+  //         fileName = 'diary_file_${index + 1}.mp3';
+  //         detectedContentType = 'audio/mpeg';
+  //       } else if (header.contains('audio/mp4') ||
+  //           header.contains('audio/x-m4a')) {
+  //         fileName = 'diary_file_${index + 1}.m4a';
+  //         detectedContentType = 'audio/mp4';
+  //       } else if (header.contains('audio/wav') ||
+  //           header.contains('audio/x-wav')) {
+  //         fileName = 'diary_file_${index + 1}.wav';
+  //         detectedContentType = 'audio/wav';
+  //       } else if (header.contains('audio/aac')) {
+  //         fileName = 'diary_file_${index + 1}.aac';
+  //         detectedContentType = 'audio/aac';
+  //       } else if (header.contains('audio/ogg')) {
+  //         fileName = 'diary_file_${index + 1}.ogg';
+  //         detectedContentType = 'audio/ogg';
+  //       } else if (header.contains('audio/amr')) {
+  //         fileName = 'diary_file_${index + 1}.amr';
+  //         detectedContentType = 'audio/amr';
+  //       } else if (header.contains('application/pdf')) {
+  //         fileName = 'diary_file_${index + 1}.pdf';
+  //         detectedContentType = 'application/pdf';
+  //       } else if (header.contains('application/msword')) {
+  //         fileName = 'diary_file_${index + 1}.doc';
+  //         detectedContentType = 'application/msword';
+  //       } else if (header.contains(
+  //         'application/vnd.openxmlformats-officedocument'
+  //         '.wordprocessingml.document',
+  //       )) {
+  //         fileName = 'diary_file_${index + 1}.docx';
+  //         detectedContentType =
+  //             'application/vnd.openxmlformats-officedocument'
+  //             '.wordprocessingml.document';
+  //       } else {
+  //         throw Exception(
+  //           'Unsupported file type for file ${index + 1}: '
+  //           '$header',
+  //         );
+  //       }
+
+  //       List<int> bytes;
+
+  //       try {
+  //         bytes = base64Decode(base64String.replaceAll(RegExp(r'\s'), ''));
+  //       } on FormatException {
+  //         throw Exception('Invalid Base64 content in file ${index + 1}');
+  //       }
+
+  //       if (bytes.isEmpty) {
+  //         throw Exception('File ${index + 1} contains no data');
+  //       }
+
+  //       debugPrint('🟢 Decoded Bytes: ${bytes.length}');
+  //       debugPrint('🟢 File Name: $fileName');
+  //       debugPrint('🟢 Content Type: $detectedContentType');
+
+  //       formData.files.add(
+  //         MapEntry(
+  //           'files[]',
+  //           MultipartFile.fromBytes(bytes, filename: fileName),
+  //         ),
+  //       );
+
+  //       debugPrint('🟢 File ${index + 1} added successfully');
+  //     }
+
+  //     debugPrint('');
+  //     debugPrint('==========================================');
+  //     debugPrint('🟢 FINAL FORMDATA FIELDS');
+  //     debugPrint('==========================================');
+
+  //     for (final MapEntry<String, String> field in formData.fields) {
+  //       debugPrint('${field.key}: ${field.value}');
+  //     }
+
+  //     debugPrint('');
+  //     debugPrint('==========================================');
+  //     debugPrint('🟡 FINAL FORMDATA FILES');
+  //     debugPrint('==========================================');
+
+  //     if (formData.files.isEmpty) {
+  //       debugPrint('ℹ️ No diary files added');
+  //     }
+
+  //     for (final MapEntry<String, MultipartFile> file in formData.files) {
+  //       debugPrint(
+  //         'Key: ${file.key} | '
+  //         'Filename: ${file.value.filename} | '
+  //         'Length: ${file.value.length} | '
+  //         'ContentType: ${file.value.contentType}',
+  //       );
+  //     }
+
+  //     final Map<String, dynamic> headers = {
+  //       'Accept': 'application/json',
+  //       'Authorization': 'Bearer $token',
+  //     };
+
+  //     if (databaseName != null && databaseName.trim().isNotEmpty) {
+  //       headers['X-Database-Name'] = databaseName;
+  //     }
+
+  //     final Options options = Options(headers: headers);
+
+  //     // Let Dio generate the multipart content type and boundary.
+  //     options.contentType = null;
+  //     options.headers?.remove('Content-Type');
+  //     options.headers?.remove('content-type');
+
+  //     debugPrint('');
+  //     debugPrint('==========================================');
+  //     debugPrint('🟢 CALLING SAVE DIARY API');
+  //     debugPrint('==========================================');
+
+  //     final Response<dynamic> response = await dio.post<dynamic>(
+  //       url,
+  //       data: formData,
+  //       options: options,
+  //       onSendProgress: (int sent, int total) {
+  //         if (total <= 0) return;
+
+  //         final double percentage = (sent / total) * 100;
+
+  //         debugPrint(
+  //           '📤 Upload: '
+  //           '${percentage.toStringAsFixed(1)}% '
+  //           '($sent/$total bytes)',
+  //         );
+  //       },
+  //     );
+
+  //     debugPrint('');
+  //     debugPrint('==========================================');
+  //     debugPrint('🟢 SAVE DIARY RESPONSE');
+  //     debugPrint('==========================================');
+  //     debugPrint('Status Code: ${response.statusCode}');
+  //     debugPrint('Response Data: ${response.data}');
+  //     debugPrint('==========================================');
+
+  //     final dynamic responseData = response.data;
+
+  //     if (responseData is! Map<String, dynamic>) {
+  //       throw Exception('Invalid Save Diary API response: $responseData');
+  //     }
+
+  //     if (response.statusCode == 200 || response.statusCode == 201) {
+  //       return MasterResponseModel.fromJson(responseData);
+  //     }
+
+  //     throw ServerException(
+  //       errorMessageModel: ErrorMessageModel.fromJson(responseData),
+  //     );
+  //   } on DioException catch (error, stackTrace) {
+  //     final dynamic responseData = error.response?.data;
+
+  //     debugPrint('');
+  //     debugPrint('==========================================');
+  //     debugPrint('❌ SAVE DIARY DIO ERROR');
+  //     debugPrint('==========================================');
+  //     debugPrint('Message : ${error.message}');
+  //     debugPrint('Status  : ${error.response?.statusCode}');
+  //     debugPrint('Response: $responseData');
+  //     debugPrint('URL     : ${error.requestOptions.uri}');
+
+  //     final dynamic failedRequestData = error.requestOptions.data;
+
+  //     if (failedRequestData is FormData) {
+  //       debugPrint('');
+  //       debugPrint('📋 FAILED REQUEST FIELDS');
+  //       debugPrint('------------------------------------------');
+
+  //       for (final MapEntry<String, String> field in failedRequestData.fields) {
+  //         debugPrint('${field.key}: ${field.value}');
+  //       }
+
+  //       debugPrint('');
+  //       debugPrint('📁 FAILED REQUEST FILES');
+  //       debugPrint('------------------------------------------');
+
+  //       for (final MapEntry<String, MultipartFile> file
+  //           in failedRequestData.files) {
+  //         debugPrint('${file.key}: ${file.value.filename}');
+  //       }
+  //     }
+
+  //     debugPrintStack(stackTrace: stackTrace);
+  //     debugPrint('==========================================');
+
+  //     if (responseData is Map<String, dynamic>) {
+  //       throw ServerException(
+  //         errorMessageModel: ErrorMessageModel.fromJson(responseData),
+  //       );
+  //     }
+
+  //     throw Exception(error.message ?? 'Unable to save diary');
+  //   } catch (error, stackTrace) {
+  //     debugPrint('');
+  //     debugPrint('==========================================');
+  //     debugPrint('❌ ERROR IN SAVE DIARY');
+  //     debugPrint('==========================================');
+  //     debugPrint('Error: $error');
+  //     debugPrintStack(stackTrace: stackTrace);
+  //     debugPrint('==========================================');
+
+  //     rethrow;
+  //   }
+  // }
   @override
   Future<MasterResponseModel> saveDiary(SaveDiaryParameter params) async {
     debugPrint('');
@@ -536,18 +878,13 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
       debugPrint('🟢 Base URL: $baseUrl');
       debugPrint('🟢 DB Name: $databaseName');
       debugPrint('🟢 API URL: $url');
-      final List<Map<String, dynamic>> standardPairs = params.standardId
-          .map((pair) => {
-        'StandardId': pair.standardId
-      })
-          .toList();
-      final List<Map<String, dynamic>> divisionPairs = params.divisionId
-          .map((pair) => {
-        'DivisionId': pair.divisionId
-      })
-          .toList();
-      final String standardJson = jsonEncode(standardPairs);
-      final String divisionJson = jsonEncode(divisionPairs);
+
+      // Postman sends one StandardId text field containing pairs:
+      // [{"StandardId":1,"DivisionId":1}, ...]
+      final String standardJson = jsonEncode(
+        params.standardId.map((pair) => pair.toJson()).toList(),
+      );
+
       final FormData formData = FormData();
 
       formData.fields.addAll([
@@ -555,8 +892,7 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
         MapEntry('SubjectId', params.subjectId.toString()),
         MapEntry('EmployeeId', params.employeeId.toString()),
         MapEntry('StandardId', standardJson),
-        MapEntry('DivisionId', divisionJson),
-        MapEntry('diaryType', "1"),
+        MapEntry('diaryType', params.diaryType),
         MapEntry('diaryTitle', params.diaryTitle),
         MapEntry('Description', params.description),
         MapEntry('diaryDate', params.diaryDate),
@@ -567,15 +903,6 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
         MapEntry('CreatedUser', params.createdUser.toString()),
         MapEntry('videoUrl', params.videoUrl),
       ]);
-
-      /*
-       * Send StandardId and DivisionId as parallel arrays, one entry per
-       * selected class-division pair, instead of a single JSON string.
-       *
-       * e.g. for two selected classes:
-       *   StandardId[]=1   DivisionId[]=1
-       *   StandardId[]=2   DivisionId[]=3
-       */
 
       debugPrint('');
       debugPrint('==========================================');
@@ -606,15 +933,11 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
         debugPrint('------------------------------------------');
         debugPrint('🟡 File String Length: ${fileString.length}');
 
-        String base64String;
-        String fileName;
-        String detectedContentType;
-
         if (!fileString.startsWith('data:')) {
           throw Exception(
             'File ${index + 1} does not contain its file type. '
-                'The file must use a data URI such as '
-                'data:image/jpeg;base64,...',
+            'The file must use a data URI such as '
+            'data:image/jpeg;base64,...',
           );
         }
 
@@ -625,14 +948,16 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
         }
 
         final String header = fileString.substring(0, commaIndex);
-
-        base64String = fileString.substring(commaIndex + 1);
+        final String base64String = fileString.substring(commaIndex + 1);
 
         debugPrint('🟡 File Header: $header');
 
         if (!header.contains(';base64')) {
           throw Exception('File ${index + 1} is not Base64 encoded');
         }
+
+        late final String fileName;
+        late final String detectedContentType;
 
         if (header.contains('image/jpeg')) {
           fileName = 'diary_file_${index + 1}.jpg';
@@ -672,20 +997,19 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
           detectedContentType = 'application/msword';
         } else if (header.contains(
           'application/vnd.openxmlformats-officedocument'
-              '.wordprocessingml.document',
+          '.wordprocessingml.document',
         )) {
           fileName = 'diary_file_${index + 1}.docx';
           detectedContentType =
-          'application/vnd.openxmlformats-officedocument'
+              'application/vnd.openxmlformats-officedocument'
               '.wordprocessingml.document';
         } else {
           throw Exception(
-            'Unsupported file type for file ${index + 1}: '
-                '$header',
+            'Unsupported file type for file ${index + 1}: $header',
           );
         }
 
-        List<int> bytes;
+        late final List<int> bytes;
 
         try {
           bytes = base64Decode(base64String.replaceAll(RegExp(r'\s'), ''));
@@ -732,9 +1056,9 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
       for (final MapEntry<String, MultipartFile> file in formData.files) {
         debugPrint(
           'Key: ${file.key} | '
-              'Filename: ${file.value.filename} | '
-              'Length: ${file.value.length} | '
-              'ContentType: ${file.value.contentType}',
+          'Filename: ${file.value.filename} | '
+          'Length: ${file.value.length} | '
+          'ContentType: ${file.value.contentType}',
         );
       }
 
@@ -756,8 +1080,29 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
 
       debugPrint('');
       debugPrint('==========================================');
+      debugPrint('🟢 REQUEST HEADERS');
+      debugPrint('==========================================');
+
+      debugPrint('Accept: ${headers['Accept']}');
+      debugPrint(
+        'Authorization: ${token.isNotEmpty ? 'Bearer ***TOKEN***' : 'MISSING'}',
+      );
+      debugPrint(
+        'X-Database-Name: '
+        '${databaseName != null && databaseName.isNotEmpty ? databaseName : 'NOT SET'}',
+      );
+
+      debugPrint('');
+      debugPrint('==========================================');
       debugPrint('🟢 CALLING SAVE DIARY API');
       debugPrint('==========================================');
+
+      final DateTime requestStartTime = DateTime.now();
+
+      debugPrint('⏱️ Request Started: $requestStartTime');
+      debugPrint('🌐 URL: $url');
+      debugPrint('📦 FormData Fields: ${formData.fields.length}');
+      debugPrint('📁 FormData Files: ${formData.files.length}');
 
       final Response<dynamic> response = await dio.post<dynamic>(
         url,
@@ -770,18 +1115,27 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
 
           debugPrint(
             '📤 Upload: '
-                '${percentage.toStringAsFixed(1)}% '
-                '($sent/$total bytes)',
+            '${percentage.toStringAsFixed(1)}% '
+            '($sent/$total bytes)',
           );
         },
       );
+
+      final DateTime requestEndTime = DateTime.now();
 
       debugPrint('');
       debugPrint('==========================================');
       debugPrint('🟢 SAVE DIARY RESPONSE');
       debugPrint('==========================================');
+      debugPrint('⏱️ Request Finished: $requestEndTime');
+      debugPrint(
+        '⏱️ Request Duration: '
+        '${requestEndTime.difference(requestStartTime).inMilliseconds} ms',
+      );
       debugPrint('Status Code: ${response.statusCode}');
+      debugPrint('Status Message: ${response.statusMessage}');
       debugPrint('Response Data: ${response.data}');
+      debugPrint('Response Headers: ${response.headers}');
       debugPrint('==========================================');
 
       final dynamic responseData = response.data;
@@ -801,13 +1155,48 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
       final dynamic responseData = error.response?.data;
 
       debugPrint('');
-      debugPrint('==========================================');
-      debugPrint('❌ SAVE DIARY DIO ERROR');
-      debugPrint('==========================================');
-      debugPrint('Message : ${error.message}');
-      debugPrint('Status  : ${error.response?.statusCode}');
-      debugPrint('Response: $responseData');
-      debugPrint('URL     : ${error.requestOptions.uri}');
+      debugPrint('==================================================');
+      debugPrint('❌❌❌ SAVE DIARY DIO ERROR ❌❌❌');
+      debugPrint('==================================================');
+
+      debugPrint('');
+      debugPrint('🔴 DIO ERROR TYPE');
+      debugPrint('------------------------------------------');
+      debugPrint('Type       : ${error.type}');
+      debugPrint('Message    : ${error.message}');
+      debugPrint('Error      : ${error.error}');
+
+      debugPrint('');
+      debugPrint('🔴 HTTP RESPONSE');
+      debugPrint('------------------------------------------');
+      debugPrint('Status     : ${error.response?.statusCode}');
+      debugPrint('Status Msg : ${error.response?.statusMessage}');
+      debugPrint('Response   : $responseData');
+
+      debugPrint('');
+      debugPrint('🔴 REQUEST INFORMATION');
+      debugPrint('------------------------------------------');
+      debugPrint('URL        : ${error.requestOptions.uri}');
+      debugPrint('Method     : ${error.requestOptions.method}');
+      debugPrint('ContentType: ${error.requestOptions.contentType}');
+      debugPrint('ResponseType: ${error.requestOptions.responseType}');
+      debugPrint('SendTimeout: ${error.requestOptions.sendTimeout}');
+      debugPrint('ReceiveTimeout: ${error.requestOptions.receiveTimeout}');
+      debugPrint('ConnectTimeout: ${error.requestOptions.connectTimeout}');
+
+      debugPrint('');
+      debugPrint('🔴 REQUEST HEADERS');
+      debugPrint('------------------------------------------');
+
+      final Map<String, dynamic> requestHeaders = error.requestOptions.headers;
+
+      for (final MapEntry<String, dynamic> header in requestHeaders.entries) {
+        if (header.key.toLowerCase() == 'authorization') {
+          debugPrint('${header.key}: Bearer ***TOKEN***');
+        } else {
+          debugPrint('${header.key}: ${header.value}');
+        }
+      }
 
       final dynamic failedRequestData = error.requestOptions.data;
 
@@ -825,17 +1214,35 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
         debugPrint('------------------------------------------');
 
         for (final MapEntry<String, MultipartFile> file
-        in failedRequestData.files) {
-          debugPrint('${file.key}: ${file.value.filename}');
+            in failedRequestData.files) {
+          debugPrint(
+            '${file.key}: '
+            '${file.value.filename} | '
+            'Length: ${file.value.length} | '
+            'ContentType: ${file.value.contentType}',
+          );
         }
       }
 
+      debugPrint('');
+      debugPrint('🔴 COMPLETE DIO EXCEPTION');
+      debugPrint('------------------------------------------');
+      debugPrint('$error');
+
+      debugPrint('');
+      debugPrint('🔴 STACK TRACE');
+      debugPrint('------------------------------------------');
       debugPrintStack(stackTrace: stackTrace);
-      debugPrint('==========================================');
+
+      debugPrint('');
+      debugPrint('==================================================');
+      debugPrint('❌ END SAVE DIARY DIO ERROR');
+      debugPrint('==================================================');
 
       if (responseData is Map<String, dynamic>) {
-        throw ServerException(
-          errorMessageModel: ErrorMessageModel.fromJson(responseData),
+        throw Exception(
+          responseData['message']?.toString() ??
+              'Save diary failed (HTTP ${error.response?.statusCode})',
         );
       }
 
@@ -1118,8 +1525,9 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
 
       final Map<String, dynamic> data = {
         'AccYear': params.accYear,
-        'StandardId': params.standardId,
-        'DivisionId': params.divisionId,
+        'StandardId': jsonEncode(
+          params.standardId.map((e) => e.toJson()).toList(),
+        ),
         'SubjectId': params.subjectId,
         'EmployeeId': params.employeeId,
         'diaryType': params.diaryType,

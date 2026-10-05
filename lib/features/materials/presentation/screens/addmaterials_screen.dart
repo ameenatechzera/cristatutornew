@@ -2606,6 +2606,7 @@ import 'package:cristalteacher/core/utils/custom_dropdown_field.dart';
 import 'package:cristalteacher/features/authentication/domain/entities/class_details_entity.dart';
 import 'package:cristalteacher/features/materials/domain/entities/material_details_entity.dart';
 import 'package:cristalteacher/features/materials/domain/parameter/save_material_parameter.dart';
+import 'package:cristalteacher/features/materials/domain/parameter/update_material_parameter.dart';
 import 'package:cristalteacher/features/materials/presentation/cubit/material_cubit.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart' hide MaterialState;
@@ -3036,6 +3037,139 @@ class _AddMaterialPageState extends State<AddMaterialPage> {
     }
   }
 
+  // Future<void> _saveMaterial() async {
+  //   FocusScope.of(context).unfocus();
+
+  //   final String? accYear = AppData.accYear;
+  //   final int? employeeId = AppData.employeeId;
+  //   final int? userId = AppData.userId;
+
+  //   if (accYear == null || accYear.trim().isEmpty) {
+  //     _showMessage('Academic year is unavailable');
+  //     return;
+  //   }
+
+  //   if (employeeId == null) {
+  //     _showMessage('Employee ID is unavailable');
+  //     return;
+  //   }
+
+  //   if (userId == null) {
+  //     _showMessage('User ID is unavailable');
+  //     return;
+  //   }
+
+  //   if (selectedSubjectId == null) {
+  //     _showMessage('Please select Subject');
+  //     return;
+  //   }
+
+  //   if (selectedClasses.isEmpty) {
+  //     _showMessage('Please select at least one class');
+  //     return;
+  //   }
+
+  //   if (selectedTab == 0) {
+  //     if (selectedFiles.isEmpty && existingMaterialUrls.isEmpty) {
+  //       _showMessage('Please choose at least one file');
+  //       return;
+  //     }
+
+  //     // A file can be deleted between picking and saving.
+  //     final List<PickedMaterialFile> missingFiles = [];
+
+  //     for (final PickedMaterialFile item in selectedFiles) {
+  //       if (!await item.file.exists()) {
+  //         missingFiles.add(item);
+  //       }
+  //     }
+
+  //     if (missingFiles.isNotEmpty) {
+  //       if (!mounted) return;
+
+  //       setState(() {
+  //         selectedFiles.removeWhere((item) => missingFiles.contains(item));
+  //       });
+
+  //       _showMessage(
+  //         '${missingFiles.map((item) => item.name).join(', ')} '
+  //         'is no longer available. Please choose it again.',
+  //       );
+  //       return;
+  //     }
+
+  //     for (final PickedMaterialFile item in selectedFiles) {
+  //       final int fileSize = await item.file.length();
+
+  //       if (fileSize > maxUploadSizeBytes) {
+  //         _showMessage(
+  //           '${item.name} is ${_formatFileSize(fileSize)}. '
+  //           'Please select a file below 5 MB.',
+  //         );
+  //         return;
+  //       }
+  //     }
+  //   }
+
+  //   if (selectedTab == 1) {
+  //     final String link = linkController.text.trim();
+
+  //     if (link.isEmpty) {
+  //       _showMessage('Please enter a link');
+  //       return;
+  //     }
+
+  //     final Uri? uri = Uri.tryParse(link);
+
+  //     if (uri == null ||
+  //         !uri.hasScheme ||
+  //         (uri.scheme != 'http' && uri.scheme != 'https')) {
+  //       _showMessage(
+  //         'Please enter a valid link starting with http:// or https://',
+  //       );
+  //       return;
+  //     }
+  //   }
+
+  //   if (selectedTab == 2 && notesController.text.trim().isEmpty) {
+  //     _showMessage('Please enter a note');
+  //     return;
+  //   }
+
+  //   if (!mounted) return;
+
+  //   // One pair for every checked class.
+  //   final List<StandardDivisionPair> standardDivisionList = selectedClasses
+  //       .map(
+  //         (selectedClass) => StandardDivisionPair(
+  //           standardId: selectedClass['standardId'] as int,
+  //           divisionId: selectedClass['divisionId'] as int,
+  //         ),
+  //       )
+  //       .toList();
+
+  //   context.read<MaterialCubit>().saveMaterial(
+  //     SaveMaterialParameter(
+  //       materials: selectedTab == 0
+  //           ? selectedFiles.map((item) => item.file).toList()
+  //           : <File>[],
+  //       staffId: employeeId,
+  //       accYear: accYear,
+  //       subjectId: selectedSubjectId!,
+  //       branchId: 1,
+  //       createdUser: userId.toString(),
+  //       documentName: selectedTab == 0
+  //           ? selectedFiles.map((item) => item.name).join(', ')
+  //           : selectedTab == 1
+  //           ? 'Link Material'
+  //           : 'Note Material',
+  //       notes: selectedTab == 2 ? notesController.text.trim() : '',
+  //       link: selectedTab == 1 ? linkController.text.trim() : '',
+  //       favorite: isFavorite,
+  //       standardDivisionList: standardDivisionList,
+  //     ),
+  //   );
+  // }
   Future<void> _saveMaterial() async {
     FocusScope.of(context).unfocus();
 
@@ -3137,7 +3271,7 @@ class _AddMaterialPageState extends State<AddMaterialPage> {
 
     if (!mounted) return;
 
-    // One pair for every checked class.
+    // Include every checked Standard + Division pair.
     final List<StandardDivisionPair> standardDivisionList = selectedClasses
         .map(
           (selectedClass) => StandardDivisionPair(
@@ -3147,27 +3281,68 @@ class _AddMaterialPageState extends State<AddMaterialPage> {
         )
         .toList();
 
-    context.read<MaterialCubit>().saveMaterial(
-      SaveMaterialParameter(
-        materials: selectedTab == 0
-            ? selectedFiles.map((item) => item.file).toList()
-            : <File>[],
-        staffId: employeeId,
-        accYear: accYear,
-        subjectId: selectedSubjectId!,
-        branchId: 1,
-        createdUser: userId.toString(),
-        documentName: selectedTab == 0
-            ? selectedFiles.map((item) => item.name).join(', ')
-            : selectedTab == 1
-            ? 'Link Material'
-            : 'Note Material',
-        notes: selectedTab == 2 ? notesController.text.trim() : '',
-        link: selectedTab == 1 ? linkController.text.trim() : '',
-        favorite: isFavorite,
-        standardDivisionList: standardDivisionList,
-      ),
+    final SaveMaterialParameter request = SaveMaterialParameter(
+      materials: selectedTab == 0
+          ? selectedFiles.map((item) => item.file).toList()
+          : <File>[],
+      staffId: employeeId,
+      accYear: accYear,
+      standardDivisionList: standardDivisionList,
+      subjectId: selectedSubjectId!,
+      branchId: AppData.branchId ?? 1,
+      createdUser: userId.toString(),
+      documentName: selectedTab == 0
+          ? selectedFiles.map((item) => item.name).join(', ')
+          : selectedTab == 1
+          ? 'Link Material'
+          : 'Note Material',
+      notes: selectedTab == 2 ? notesController.text.trim() : '',
+      link: selectedTab == 1 ? linkController.text.trim() : '',
+      favorite: isFavorite,
     );
+
+    debugPrint('==============================================');
+    debugPrint('SAVE MATERIAL REQUEST');
+    debugPrint('==============================================');
+    debugPrint('StaffId: ${request.staffId}');
+    debugPrint('AccYear: ${request.accYear}');
+    debugPrint(
+      'StandardId: '
+      '${request.standardDivisionList.map((pair) => pair.toJson()).toList()}',
+    );
+    debugPrint('SubjectId: ${request.subjectId}');
+    debugPrint('branchId: ${request.branchId}');
+    debugPrint('CreatedUser: ${request.createdUser}');
+    debugPrint('documentName: ${request.documentName}');
+    debugPrint('notes: ${request.notes}');
+    debugPrint('link: ${request.link}');
+    debugPrint('favorite: ${request.favorite}');
+    debugPrint('Material file count: ${request.materials.length}');
+    debugPrint('==============================================');
+
+    // context.read<MaterialCubit>().saveMaterial(request);
+    final cubit = context.read<MaterialCubit>();
+
+    if (widget.isEditing) {
+      await cubit.updateMaterial(
+        widget.materialId!,
+        UpdateMaterialParameter(
+          materials: request.materials,
+          staffId: request.staffId,
+          accYear: request.accYear,
+          standardDivisionList: request.standardDivisionList,
+          subjectId: request.subjectId,
+          branchId: request.branchId,
+          createdUser: request.createdUser,
+          documentName: request.documentName,
+          notes: request.notes,
+          link: request.link,
+          favorite: request.favorite,
+        ),
+      );
+    } else {
+      await cubit.saveMaterial(request);
+    }
   }
 
   void _showMessage(String message, {Color backgroundColor = Colors.red}) {
@@ -3201,11 +3376,13 @@ class _AddMaterialPageState extends State<AddMaterialPage> {
           _showMessage(state.message);
         }
 
-        if (state is SaveMaterialSuccess) {
+        if (state is SaveMaterialSuccess || state is UpdateMaterialSuccess) {
           Navigator.pop(context, true);
         }
 
         if (state is SaveMaterialFailure) {
+          _showMessage(state.message);
+        } else if (state is UpdateMaterialFailure) {
           _showMessage(state.message);
         }
       },
@@ -3945,7 +4122,11 @@ class _AddMaterialPageState extends State<AddMaterialPage> {
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
         ),
-        onPressed: isSaving ? null : _saveMaterial,
+        onPressed: (isSaving || _isFetchingEditDetails || _isPickingFiles)
+            ? null
+            : _saveMaterial,
+        //  onPressed: (isSaving || widget.isEditing) ? null : _saveMaterial,
+        // onPressed: isSaving ? null : _saveMaterial,
         child: isSaving
             ? const SizedBox(
                 width: 22,

@@ -7,11 +7,11 @@ import 'package:cristalteacher/core/network/api_endpoints.dart';
 import 'package:cristalteacher/core/network/api_helper.dart';
 import 'package:cristalteacher/features/attendance/data/models/attendance_report_model.dart';
 import 'package:cristalteacher/features/attendance/data/models/fetch_attendancedetails_model.dart';
-import 'package:cristalteacher/features/attendance/data/models/monthly_attendanceResultModel.dart';
+import 'package:cristalteacher/features/attendance/data/models/monthly_attendance_result_model.dart';
 import 'package:cristalteacher/features/attendance/data/models/studentattendance_response_model.dart';
 import 'package:cristalteacher/features/attendance/domain/parameters/attendance_report_parameter.dart';
 import 'package:cristalteacher/features/attendance/domain/parameters/fetch_attendancedetails_parameter.dart';
-import 'package:cristalteacher/features/attendance/domain/parameters/monthlyAttendanceRequest.dart';
+import 'package:cristalteacher/features/attendance/domain/parameters/monthly_attendance_request.dart';
 import 'package:cristalteacher/features/attendance/domain/parameters/save_attendance_parameter.dart';
 import 'package:cristalteacher/features/attendance/domain/parameters/update_studentattendance_parameter.dart';
 import 'package:cristalteacher/services/shared_preference_helper.dart';
@@ -30,7 +30,9 @@ abstract class AttendanceRemoteDataSource {
     int studentAttendanceMasterId,
     UpdateStudentAttendanceParameter params,
   );
-  Future<MonthlyAttendanceModel> fetchMonthlyAttendance(MonthlyAttendanceRequest request);
+  Future<MonthlyAttendanceModel> fetchMonthlyAttendance(
+    MonthlyAttendanceRequest request,
+  );
 }
 
 class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
@@ -144,123 +146,6 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
     }
   }
 
-  // @override
-  // Future<AttendanceReportResponseModel> fetchAttendanceReport(
-  //   AttendanceReportParameter params,
-  // ) async {
-  //   print('📘 Attendance Report Called');
-
-  //   try {
-  //     /// Base URL
-  //     final baseUrl = await SharedPreferenceHelper().getBaseUrl();
-
-  //     if (baseUrl == null || baseUrl.isEmpty) {
-  //       throw Exception("Base URL not set");
-  //     }
-
-  //     /// API URL
-  //     final url = ApiConstants.getAttendanceReportPath(baseUrl);
-
-  //     print("URL : $url");
-
-  //     /// Headers
-  //     final options = await ApiHelper.getAuthOptions(withToken: true);
-
-  //     /// API Call
-  //     final response = await dio.post(url, options: options);
-
-  //     print('📘 Status Code: ${response.statusCode}');
-
-  //     final responseString = jsonEncode(response.data);
-
-  //     const chunkSize = 800;
-
-  //     for (int i = 0; i < responseString.length; i += chunkSize) {
-  //       print(
-  //         responseString.substring(
-  //           i,
-  //           i + chunkSize > responseString.length
-  //               ? responseString.length
-  //               : i + chunkSize,
-  //         ),
-  //       );
-  //     }
-
-  //     if (response.statusCode == 200 || response.statusCode == 201) {
-  //       return AttendanceReportResponseModel.fromJson(response.data);
-  //     } else {
-  //       throw ServerException(
-  //         errorMessageModel: ErrorMessageModel.fromJson(response.data),
-  //       );
-  //     }
-  //   } catch (e, stacktrace) {
-  //     print('❌ Exception in fetchAttendanceReport: $e');
-  //     print(stacktrace);
-  //     rethrow;
-  //   }
-  // }
-  // @override
-  // Future<AttendanceReportResponseModel> fetchAttendanceReport(
-  //   AttendanceReportParameter params,
-  // ) async {
-  //   print('📘 Attendance Report Called');
-
-  //   try {
-  //     /// Base URL
-  //     final baseUrl = await SharedPreferenceHelper().getBaseUrl();
-
-  //     if (baseUrl == null || baseUrl.isEmpty) {
-  //       throw Exception("Base URL not set");
-  //     }
-
-  //     /// API URL
-  //     final url = ApiConstants.getAttendanceReportPath(baseUrl);
-
-  //     print("📘 URL : $url");
-
-  //     /// Request
-  //     print("📘 Attendance Request: ${params.toJson()}");
-
-  //     /// Headers
-  //     final options = await ApiHelper.getAuthOptions(withToken: true);
-
-  //     /// API Call
-  //     final response = await dio.post(
-  //       url,
-  //       data: params.toJson(), // ⭐ THIS WAS MISSING
-  //       options: options,
-  //     );
-
-  //     print('📘 Status Code: ${response.statusCode}');
-
-  //     final responseString = jsonEncode(response.data);
-
-  //     const chunkSize = 800;
-
-  //     for (int i = 0; i < responseString.length; i += chunkSize) {
-  //       print(
-  //         responseString.substring(
-  //           i,
-  //           i + chunkSize > responseString.length
-  //               ? responseString.length
-  //               : i + chunkSize,
-  //         ),
-  //       );
-  //     }
-
-  //     if (response.statusCode == 200 || response.statusCode == 201) {
-  //       return AttendanceReportResponseModel.fromJson(response.data);
-  //     } else {
-  //       throw ServerException(
-  //         errorMessageModel: ErrorMessageModel.fromJson(response.data),
-  //       );
-  //     }
-  //   } catch (e, stacktrace) {
-  //     print('❌ Exception in fetchAttendanceReport: $e');
-  //     print(stacktrace);
-  //     rethrow;
-  //   }
-  // }
   @override
   Future<AttendanceReportResponseModel> fetchAttendanceReport(
     AttendanceReportParameter params,
@@ -399,48 +284,6 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
       rethrow;
     }
   }
-  // @override
-  // Future<StudentAttendanceResponseModel> fetchStudentAttendance(
-  //   int studentId,
-  // ) async {
-  //   print('📘 Fetch Student Attendance Called');
-  //   print('📌 Student ID: $studentId');
-
-  //   try {
-  //     final baseUrl = await SharedPreferenceHelper().getBaseUrl();
-
-  //     if (baseUrl == null || baseUrl.isEmpty) {
-  //       throw Exception("Base URL not set");
-  //     }
-
-  //     final url = ApiConstants.getStudentAttendancePath(baseUrl);
-
-  //     print('📘 URL: $url');
-
-  //     final options = await ApiHelper.getAuthOptions(withToken: true);
-
-  //     final requestData = {'studentId': studentId};
-
-  //     print('📦 Request: $requestData');
-
-  //     final response = await dio.get(url, data: requestData, options: options);
-
-  //     print('📘 Status Code: ${response.statusCode}');
-  //     print('📘 Response Data: ${response.data}');
-
-  //     if (response.statusCode == 200 || response.statusCode == 201) {
-  //       return StudentAttendanceResponseModel.fromJson(response.data);
-  //     } else {
-  //       throw ServerException(
-  //         errorMessageModel: ErrorMessageModel.fromJson(response.data),
-  //       );
-  //     }
-  //   } catch (e, stackTrace) {
-  //     print('❌ Exception in fetchStudentAttendance: $e');
-  //     print(stackTrace);
-  //     rethrow;
-  //   }
-  // }
 
   @override
   Future<MasterResponseModel> updateStudentAttendance(
@@ -502,9 +345,11 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
       rethrow;
     }
   }
+
   @override
-  Future<MonthlyAttendanceModel> fetchMonthlyAttendance(MonthlyAttendanceRequest request)
-  async {
+  Future<MonthlyAttendanceModel> fetchMonthlyAttendance(
+    MonthlyAttendanceRequest request,
+  ) async {
     print('✏️ Monthly Student Attendance Called');
     print('MonthlyAttendanceRequest: ${request.toJson()}');
 
@@ -515,8 +360,7 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
         throw Exception("Base URL not set");
       }
 
-      final url =
-          '${ApiConstants.getMonthlyAttendancePath(baseUrl)}';
+      final url = '${ApiConstants.getMonthlyAttendancePath(baseUrl)}';
 
       print("✏️ Update Student Attendance URL: $url");
 

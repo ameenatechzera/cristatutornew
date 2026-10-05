@@ -2,11 +2,11 @@ import 'package:bloc/bloc.dart';
 import 'package:cristalteacher/core/models/master_response_model.dart';
 import 'package:cristalteacher/features/attendance/domain/entities/attendance_report_entity.dart';
 import 'package:cristalteacher/features/attendance/domain/entities/fetch_attendancedetails_entity.dart';
-import 'package:cristalteacher/features/attendance/domain/entities/monthly_attendanceResult.dart';
+import 'package:cristalteacher/features/attendance/domain/entities/monthly_attendance_result.dart';
 import 'package:cristalteacher/features/attendance/domain/entities/studentattendance_response_enttiy.dart';
 import 'package:cristalteacher/features/attendance/domain/parameters/attendance_report_parameter.dart';
 import 'package:cristalteacher/features/attendance/domain/parameters/fetch_attendancedetails_parameter.dart';
-import 'package:cristalteacher/features/attendance/domain/parameters/monthlyAttendanceRequest.dart';
+import 'package:cristalteacher/features/attendance/domain/parameters/monthly_attendance_request.dart';
 import 'package:cristalteacher/features/attendance/domain/parameters/save_attendance_parameter.dart';
 import 'package:cristalteacher/features/attendance/domain/parameters/update_studentattendance_parameter.dart';
 import 'package:cristalteacher/features/attendance/domain/usecases/fetchMonthlyAttendanceUseCase.dart';
@@ -33,13 +33,13 @@ class AttendanceCubit extends Cubit<AttendanceState> {
     required FetchAttendanceReportUseCase fetchAttendanceReportUseCase,
     required FetchStudentAttendanceUseCase fetchStudentAttendanceUseCase,
     required UpdateStudentAttendanceUseCase updateStudentAttendanceUseCase,
-    required FetchMonthlyAttendanceUseCase fetchMonthlyAttendanceUseCase
+    required FetchMonthlyAttendanceUseCase fetchMonthlyAttendanceUseCase,
   }) : _attendanceDetailsUseCase = attendanceDetailsUseCase,
        _saveAttendanceUseCase = saveAttendanceUseCase,
        _fetchAttendanceReportUseCase = fetchAttendanceReportUseCase,
        _fetchStudentAttendanceUseCase = fetchStudentAttendanceUseCase,
        _updateStudentAttendanceUseCase = updateStudentAttendanceUseCase,
-        _fetchMonthlyAttendanceUseCase = fetchMonthlyAttendanceUseCase,
+       _fetchMonthlyAttendanceUseCase = fetchMonthlyAttendanceUseCase,
        super(AttendanceInitial());
 
   Future fetchMonthlyAttendanceReport(MonthlyAttendanceRequest params) async {
@@ -53,13 +53,13 @@ class AttendanceCubit extends Cubit<AttendanceState> {
       final result = await _fetchMonthlyAttendanceUseCase(params);
 
       result.fold(
-            (failure) {
+        (failure) {
           print('❌ Attendance Report Failed');
           print(failure.message);
 
           emit(MonthlyAttendanceReportFailure(failure.message));
         },
-            (response) {
+        (response) {
           print('✅ Attendance Report Success');
 
           emit(MonthlyAttendanceReportSuccess(response));
@@ -69,7 +69,9 @@ class AttendanceCubit extends Cubit<AttendanceState> {
       print('❌ Exception during fetchAttendanceReport: $e');
       print(stacktrace);
 
-      emit(const MonthlyAttendanceReportFailure('An unexpected error occurred'));
+      emit(
+        const MonthlyAttendanceReportFailure('An unexpected error occurred'),
+      );
     }
   }
 

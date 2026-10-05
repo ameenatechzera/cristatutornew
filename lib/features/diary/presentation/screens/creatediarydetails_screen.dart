@@ -1856,7 +1856,7 @@ class SelectYourClassScreen extends StatefulWidget {
 
   final int divisionId;
   final String divisionName;
-
+  final List<DiaryStandardParameter> selectedClasses;
   final int subjectId;
   final String subjectName;
 
@@ -1882,6 +1882,7 @@ class SelectYourClassScreen extends StatefulWidget {
     required this.standardName,
     required this.divisionId,
     required this.divisionName,
+    required this.selectedClasses,
     required this.subjectId,
     required this.subjectName,
     required this.diaryDate,
@@ -2481,7 +2482,132 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
     return files;
   }
 
-  /// Runs the create or the update request, depending on diaryId.
+  // /// Runs the create or update request, depending on diaryId.
+  // Future<void> _saveDiary() async {
+  //   FocusScope.of(context).unfocus();
+
+  //   final String title = _titleController.text.trim();
+  //   final String description = _descriptionController.text.trim();
+
+  //   debugPrint('');
+  //   debugPrint('==================================================');
+  //   debugPrint('${isEditMode ? 'UPDATE' : 'SAVE'} DIARY BUTTON PRESSED');
+  //   debugPrint('==================================================');
+  //   debugPrint('Diary ID      : ${widget.diaryId}');
+  //   debugPrint('Standard ID   : ${widget.standardId}');
+  //   debugPrint('Division ID   : ${widget.divisionId}');
+  //   debugPrint('Subject ID    : ${widget.subjectId}');
+  //   debugPrint('Title         : $title');
+  //   debugPrint('Description   : $description');
+  //   debugPrint('Voice State   : $voiceState');
+  //   debugPrint('Kept files    : ${_existingFiles.length}');
+  //   debugPrint('New files     : ${_selectedFiles.length}');
+
+  //   if (voiceState == VoiceState.recording) {
+  //     _showMessage('Please stop the voice recording before saving');
+  //     return;
+  //   }
+
+  //   if (!_hasAnyContent) {
+  //     _showMessage(
+  //       'Please add a title, description, attachment or voice recording',
+  //     );
+  //     return;
+  //   }
+
+  //   if (AppData.accYear == null) {
+  //     _showMessage('Academic year is not available');
+  //     return;
+  //   }
+
+  //   if (AppData.employeeId == null) {
+  //     _showMessage('Employee ID is not available');
+  //     return;
+  //   }
+
+  //   if (AppData.userId == null) {
+  //     _showMessage('User ID is not available');
+  //     return;
+  //   }
+
+  //   final String styledTitle = title.isEmpty ? '' : _titleController.toHtml();
+
+  //   final String styledDescription = description.isEmpty
+  //       ? ''
+  //       : _descriptionController.toHtml();
+
+  //   try {
+  //     final List<String> apiFiles = await _buildApiFiles();
+
+  //     debugPrint('Total files sent: ${apiFiles.length}');
+
+  //     if (!mounted) return;
+
+  //     // ---------------- UPDATE ----------------
+  //     if (isEditMode) {
+  //       final UpdateDiaryParameter request = UpdateDiaryParameter(
+  //         accYear: AppData.accYear!,
+  //         standardId: widget.standardId,
+  //         divisionId: widget.divisionId,
+  //         subjectId: widget.subjectId,
+  //         employeeId: AppData.employeeId!,
+  //         diaryType: null,
+  //         diaryTitle: styledTitle,
+  //         description: styledDescription,
+  //         diaryDate: formatApiDate(widget.diaryDate),
+  //         dueDate: formatApiDate(widget.dueDate),
+  //         isActive: true,
+  //         isFavourite: widget.isFavourite,
+  //         branchId: AppData.branchId ?? 1,
+  //         modifiedUser: AppData.userId.toString(),
+  //         files: apiFiles,
+  //         videoUrl: '',
+  //       );
+
+  //       debugPrint('');
+  //       debugPrint('==================================================');
+  //       debugPrint('UPDATE DIARY REQUEST');
+  //       debugPrint('==================================================');
+  //       _printRequestJson(request.toJson());
+
+  //       await context.read<DiaryCubit>().updateDiary(request, widget.diaryId!);
+  //       return;
+  //     }
+
+  //     // ---------------- CREATE ----------------
+  //     final SaveDiaryParameter request = SaveDiaryParameter(
+  //       accYear: AppData.accYear!,
+  //       standardId: widget.selectedClasses,
+  //       subjectId: widget.subjectId,
+  //       employeeId: AppData.employeeId!,
+  //       diaryType: "1",
+  //       diaryTitle: styledTitle,
+  //       description: styledDescription,
+  //       diaryDate: formatApiDate(widget.diaryDate),
+  //       dueDate: formatApiDate(widget.dueDate),
+  //       isActive: true,
+  //       isFavourite: widget.isFavourite,
+  //       branchId: AppData.branchId ?? 1,
+  //       createdUser: AppData.userId!,
+  //       files: apiFiles,
+  //       videoUrl: '',
+  //     );
+
+  //     debugPrint('');
+  //     debugPrint('==================================================');
+  //     debugPrint('SAVE DIARY REQUEST');
+  //     debugPrint('==================================================');
+  //     debugPrint('Standard ID: ${widget.standardId}');
+  //     debugPrint('Division ID: ${widget.divisionId}');
+
+  //     await context.read<DiaryCubit>().saveDiary(request);
+  //   } catch (error, stackTrace) {
+  //     debugPrint('Prepare diary request error: $error');
+  //     debugPrintStack(stackTrace: stackTrace);
+  //     _showMessage('Unable to prepare diary request');
+  //   }
+  // }
+  /// Runs the create or update request, depending on diaryId.
   Future<void> _saveDiary() async {
     FocusScope.of(context).unfocus();
 
@@ -2492,23 +2618,39 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
     debugPrint('==================================================');
     debugPrint('${isEditMode ? 'UPDATE' : 'SAVE'} DIARY BUTTON PRESSED');
     debugPrint('==================================================');
-    debugPrint('Diary ID      : ${widget.diaryId}');
-    debugPrint('Standard ID   : ${widget.standardId}');
-    debugPrint('Division ID   : ${widget.divisionId}');
-    debugPrint('Subject ID    : ${widget.subjectId}');
-    debugPrint('Title         : $title');
-    debugPrint('Description   : $description');
-    debugPrint('Voice State   : $voiceState');
-    debugPrint('Kept files    : ${_existingFiles.length}');
-    debugPrint('New files     : ${_selectedFiles.length}');
+
+    debugPrint('Diary ID       : ${widget.diaryId}');
+    debugPrint('Selected Class Count: ${widget.selectedClasses.length}');
+    debugPrint('Subject ID     : ${widget.subjectId}');
+    debugPrint('Title          : $title');
+    debugPrint('Description    : $description');
+    debugPrint('Voice State    : $voiceState');
+    debugPrint('Kept files     : ${_existingFiles.length}');
+    debugPrint('New files      : ${_selectedFiles.length}');
+
+    // --------------------------------------------------
+    // PRINT ALL SELECTED STANDARD + DIVISION
+    // --------------------------------------------------
+
+    for (int i = 0; i < widget.selectedClasses.length; i++) {
+      final DiaryStandardParameter item = widget.selectedClasses[i];
+
+      debugPrint(
+        'Class ${i + 1}: '
+        'StandardId=${item.standardId}, '
+        'DivisionId=${item.divisionId}',
+      );
+    }
+
+    // --------------------------------------------------
+    // VALIDATION
+    // --------------------------------------------------
 
     if (voiceState == VoiceState.recording) {
       _showMessage('Please stop the voice recording before saving');
       return;
     }
 
-    // Title, description, attachments and the recording are all optional
-    // on their own — only an completely empty diary is refused.
     if (!_hasAnyContent) {
       _showMessage(
         'Please add a title, description, attachment or voice recording',
@@ -2531,9 +2673,11 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
       return;
     }
 
-    // Every formatted run travels as its own inline span. Empty fields stay
-    // empty strings, so a diary can carry only an attachment or a voice
-    // recording.
+    if (widget.selectedClasses.isEmpty) {
+      _showMessage('Please select at least one class');
+      return;
+    }
+
     final String styledTitle = title.isEmpty ? '' : _titleController.toHtml();
 
     final String styledDescription = description.isEmpty
@@ -2541,30 +2685,49 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
         : _descriptionController.toHtml();
 
     try {
+      // --------------------------------------------------
+      // BUILD FILES
+      // --------------------------------------------------
+
       final List<String> apiFiles = await _buildApiFiles();
 
-      debugPrint('Total files sent: ${apiFiles.length}');
+      debugPrint('');
+      debugPrint('TOTAL FILES SENT: ${apiFiles.length}');
 
       if (!mounted) return;
 
-      // ---------------- UPDATE ----------------
+      // ==================================================
+      // UPDATE
+      // ==================================================
+
       if (isEditMode) {
         final UpdateDiaryParameter request = UpdateDiaryParameter(
           accYear: AppData.accYear!,
-          standardId: widget.standardId,
-          divisionId: widget.divisionId,
+
+          // IMPORTANT:
+          // Send ALL selected Standard + Division pairs.
+          standardId: widget.selectedClasses,
+
           subjectId: widget.subjectId,
           employeeId: AppData.employeeId!,
-          diaryType: null,
+
+          diaryType: "1",
+
           diaryTitle: styledTitle,
           description: styledDescription,
+
           diaryDate: formatApiDate(widget.diaryDate),
           dueDate: formatApiDate(widget.dueDate),
+
           isActive: true,
           isFavourite: widget.isFavourite,
+
           branchId: AppData.branchId ?? 1,
+
           modifiedUser: AppData.userId.toString(),
+
           files: apiFiles,
+
           videoUrl: '',
         );
 
@@ -2573,35 +2736,45 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
         debugPrint('UPDATE DIARY REQUEST');
         debugPrint('==================================================');
 
-        _printRequestJson(request.toJson());
+        // _printRequestJson(request.toJson());
+
+        debugPrint('Diary ID: ${widget.diaryId}');
 
         await context.read<DiaryCubit>().updateDiary(request, widget.diaryId!);
+
         return;
       }
 
-      // ---------------- CREATE ----------------
+      // ==================================================
+      // CREATE
+      // ==================================================
+
       final SaveDiaryParameter request = SaveDiaryParameter(
         accYear: AppData.accYear!,
-        standardId: [DiaryStandardParameter(standardId: widget.standardId)],
-        divisionId: [DiaryDivisionParameter(divisionId: widget.divisionId)],
-        // standardDivisionList: [
-        //   StandardDivisionPair(
-        //     standardId: selectedStandardId!,
-        //     divisionId: selectedDivisionId!,
-        //   ),
-        // ],
+
+        // Send ALL selected Standard + Division pairs.
+        standardId: widget.selectedClasses,
+
         subjectId: widget.subjectId,
         employeeId: AppData.employeeId!,
-        diaryType: widget.diaryType,
+
+        diaryType: "1",
+
         diaryTitle: styledTitle,
         description: styledDescription,
+
         diaryDate: formatApiDate(widget.diaryDate),
         dueDate: formatApiDate(widget.dueDate),
+
         isActive: true,
         isFavourite: widget.isFavourite,
+
         branchId: AppData.branchId ?? 1,
+
         createdUser: AppData.userId!,
+
         files: apiFiles,
+
         videoUrl: '',
       );
 
@@ -2610,16 +2783,160 @@ class _SelectYourClassScreenState extends State<SelectYourClassScreen> {
       debugPrint('SAVE DIARY REQUEST');
       debugPrint('==================================================');
 
-      //_printRequestJson(request.toJson());
+      // _printRequestJson(request.toJson());
 
       await context.read<DiaryCubit>().saveDiary(request);
     } catch (error, stackTrace) {
-      debugPrint('Prepare diary request error: $error');
+      debugPrint('');
+      debugPrint('==================================================');
+      debugPrint('PREPARE DIARY REQUEST ERROR');
+      debugPrint('==================================================');
+
+      debugPrint('Error: $error');
       debugPrintStack(stackTrace: stackTrace);
 
-      _showMessage('Unable to prepare attachments');
+      _showMessage('Unable to prepare diary request');
     }
   }
+  // /// Runs the create or the update request, depending on diaryId.
+  // Future<void> _saveDiary() async {
+  //   FocusScope.of(context).unfocus();
+
+  //   final String title = _titleController.text.trim();
+  //   final String description = _descriptionController.text.trim();
+
+  //   debugPrint('');
+  //   debugPrint('==================================================');
+  //   debugPrint('${isEditMode ? 'UPDATE' : 'SAVE'} DIARY BUTTON PRESSED');
+  //   debugPrint('==================================================');
+  //   debugPrint('Diary ID      : ${widget.diaryId}');
+  //   debugPrint('Standard ID   : ${widget.standardId}');
+  //   debugPrint('Division ID   : ${widget.divisionId}');
+  //   debugPrint('Subject ID    : ${widget.subjectId}');
+  //   debugPrint('Title         : $title');
+  //   debugPrint('Description   : $description');
+  //   debugPrint('Voice State   : $voiceState');
+  //   debugPrint('Kept files    : ${_existingFiles.length}');
+  //   debugPrint('New files     : ${_selectedFiles.length}');
+
+  //   if (voiceState == VoiceState.recording) {
+  //     _showMessage('Please stop the voice recording before saving');
+  //     return;
+  //   }
+
+  //   // Title, description, attachments and the recording are all optional
+  //   // on their own — only an completely empty diary is refused.
+  //   if (!_hasAnyContent) {
+  //     _showMessage(
+  //       'Please add a title, description, attachment or voice recording',
+  //     );
+  //     return;
+  //   }
+
+  //   if (AppData.accYear == null) {
+  //     _showMessage('Academic year is not available');
+  //     return;
+  //   }
+
+  //   if (AppData.employeeId == null) {
+  //     _showMessage('Employee ID is not available');
+  //     return;
+  //   }
+
+  //   if (AppData.userId == null) {
+  //     _showMessage('User ID is not available');
+  //     return;
+  //   }
+
+  //   // Every formatted run travels as its own inline span. Empty fields stay
+  //   // empty strings, so a diary can carry only an attachment or a voice
+  //   // recording.
+  //   final String styledTitle = title.isEmpty ? '' : _titleController.toHtml();
+
+  //   final String styledDescription = description.isEmpty
+  //       ? ''
+  //       : _descriptionController.toHtml();
+
+  //   try {
+  //     final List<String> apiFiles = await _buildApiFiles();
+
+  //     debugPrint('Total files sent: ${apiFiles.length}');
+
+  //     if (!mounted) return;
+
+  //     // ---------------- UPDATE ----------------
+  //     if (isEditMode) {
+  //       final UpdateDiaryParameter request = UpdateDiaryParameter(
+  //         accYear: AppData.accYear!,
+  //         standardId: widget.standardId,
+  //         divisionId: widget.divisionId,
+  //         subjectId: widget.subjectId,
+  //         employeeId: AppData.employeeId!,
+  //         diaryType: null,
+  //         diaryTitle: styledTitle,
+  //         description: styledDescription,
+  //         diaryDate: formatApiDate(widget.diaryDate),
+  //         dueDate: formatApiDate(widget.dueDate),
+  //         isActive: true,
+  //         isFavourite: widget.isFavourite,
+  //         branchId: AppData.branchId ?? 1,
+  //         modifiedUser: AppData.userId.toString(),
+  //         files: apiFiles,
+  //         videoUrl: '',
+  //       );
+
+  //       debugPrint('');
+  //       debugPrint('==================================================');
+  //       debugPrint('UPDATE DIARY REQUEST');
+  //       debugPrint('==================================================');
+
+  //       _printRequestJson(request.toJson());
+
+  //       await context.read<DiaryCubit>().updateDiary(request, widget.diaryId!);
+  //       return;
+  //     }
+
+  //     // ---------------- CREATE ----------------
+  //     final SaveDiaryParameter request = SaveDiaryParameter(
+  //       accYear: AppData.accYear!,
+  //       standardId: [DiaryStandardParameter(standardId: widget.standardId)],
+  //       divisionId: [DiaryDivisionParameter(divisionId: widget.divisionId)],
+  //       // standardDivisionList: [
+  //       //   StandardDivisionPair(
+  //       //     standardId: selectedStandardId!,
+  //       //     divisionId: selectedDivisionId!,
+  //       //   ),
+  //       // ],
+  //       subjectId: widget.subjectId,
+  //       employeeId: AppData.employeeId!,
+  //       diaryType: widget.diaryType,
+  //       diaryTitle: styledTitle,
+  //       description: styledDescription,
+  //       diaryDate: formatApiDate(widget.diaryDate),
+  //       dueDate: formatApiDate(widget.dueDate),
+  //       isActive: true,
+  //       isFavourite: widget.isFavourite,
+  //       branchId: AppData.branchId ?? 1,
+  //       createdUser: AppData.userId!,
+  //       files: apiFiles,
+  //       videoUrl: '',
+  //     );
+
+  //     debugPrint('');
+  //     debugPrint('==================================================');
+  //     debugPrint('SAVE DIARY REQUEST');
+  //     debugPrint('==================================================');
+
+  //     //_printRequestJson(request.toJson());
+
+  //     await context.read<DiaryCubit>().saveDiary(request);
+  //   } catch (error, stackTrace) {
+  //     debugPrint('Prepare diary request error: $error');
+  //     debugPrintStack(stackTrace: stackTrace);
+
+  //     _showMessage('Unable to prepare attachments');
+  //   }
+  // }
 
   /// Prints the request without dumping whole base64 payloads.
   void _printRequestJson(Map<String, dynamic> requestJson) {

@@ -31,7 +31,7 @@ class ApiConstants {
   }
 
   static String getDiaryDetailsPath(String baseUrl) {
-    return '${baseUrl}classdiary';
+    return '${baseUrl}app/classdiary';
   }
 
   static String getSaveDiaryPath(String baseUrl) {
@@ -138,7 +138,7 @@ class ApiConstants {
 
   /// Returns update diary
   static String getUpdateDiaryPath(String baseUrl) {
-    return '${baseUrl}update-classdiary';
+    return '${baseUrl}app/update-classdiaryapp';
   }
 
   /// Returns examlisting
@@ -193,5 +193,10 @@ class ApiConstants {
   /// Delete material
   static String getMaterialDetailsPath(String baseUrl, int materialId) {
     return '${baseUrl}material-byid/$materialId';
+  }
+
+  /// Update material
+  static String updateMaterialPath(String baseUrl, int materialId) {
+    return '${baseUrl}app/update-material/$materialId';
   }
 }

@@ -203,8 +203,7 @@ class DiaryCubit extends Cubit<DiaryState> {
           print('Error        : ${response.error}');
           print('Message      : ${response.message}');
           print('Diary ID     : ${response.data?.diaryId}');
-          print('Standard ID  : ${response.data?.standardId}');
-          print('Division ID  : ${response.data?.divisionId}');
+          print('Standard ID  : ${response.data?.standardDivision}');
           print('Subject ID   : ${response.data?.subjectId}');
           print('Diary Title  : ${response.data?.diaryTitle}');
           print('Files        : ${response.data?.files?.length ?? 0}');
@@ -235,7 +234,7 @@ class DiaryCubit extends Cubit<DiaryState> {
     print('🟠 UPDATE DIARY');
     print('==========================================');
     print('Diary ID: $diaryId');
-    print('Request : ${request.toJson()}');
+    // print('Request : ${request.toJson()}');
 
     if (diaryId <= 0) {
       emit(const UpdateDiaryFailure('Invalid diary ID'));

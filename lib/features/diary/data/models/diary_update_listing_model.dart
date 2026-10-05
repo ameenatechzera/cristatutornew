@@ -26,8 +26,7 @@ class DiaryUpdateListingModel extends DiaryUpdateListingData {
   DiaryUpdateListingModel({
     super.diaryId,
     super.accYear,
-    super.standardId,
-    super.divisionId,
+    super.standardDivision,
     super.subjectId,
     super.employeeId,
     super.diaryType,
@@ -46,20 +45,27 @@ class DiaryUpdateListingModel extends DiaryUpdateListingData {
 
   factory DiaryUpdateListingModel.fromJson(Map<String, dynamic> json) {
     return DiaryUpdateListingModel(
-      diaryId: _toInt(json['diaryId']),
+      diaryId: toInt(json['diaryId']),
       accYear: json['AccYear']?.toString(),
-      standardId: _toInt(json['StandardId']),
-      divisionId: _toInt(json['DivisionId']),
-      subjectId: _toInt(json['SubjectId']),
-      employeeId: _toInt(json['EmployeeId']),
-      diaryType: _toInt(json['diaryType']),
+      // The backend sends class pairs inside StandardDivision.
+      standardDivision: (json['StandardDivision'] as List?)
+          ?.whereType<Map>()
+          .map(
+            (item) => DiaryStandardDivisionModel.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
+          .toList(),
+      subjectId: toInt(json['SubjectId']),
+      employeeId: toInt(json['EmployeeId']),
+      diaryType: toInt(json['diaryType']),
       diaryTitle: json['diaryTitle']?.toString(),
       description: json['Description']?.toString(),
       diaryDate: json['diaryDate']?.toString(),
       dueDate: json['dueDate']?.toString(),
       isActive: _toBool(json['isActive']),
       isFavourite: _toBool(json['isFavourite']),
-      branchId: _toInt(json['branchId']),
+      branchId: toInt(json['branchId']),
       createdDate: json['CreatedDate']?.toString(),
       createdUser: json['CreatedUser']?.toString(),
       files: (json['files'] as List?)
@@ -70,7 +76,7 @@ class DiaryUpdateListingModel extends DiaryUpdateListingData {
     );
   }
 
-  static int? _toInt(dynamic value) {
+  static int? toInt(dynamic value) {
     if (value == null) return null;
     if (value is int) return value;
     if (value is num) return value.toInt();
@@ -94,5 +100,30 @@ class DiaryUpdateListingModel extends DiaryUpdateListingData {
     }
 
     return null;
+  }
+}
+
+class DiaryStandardDivisionModel extends DiaryStandardDivisionEntity {
+  const DiaryStandardDivisionModel({
+    required super.standardId,
+    super.standard,
+    required super.divisionId,
+    super.division,
+  });
+
+  factory DiaryStandardDivisionModel.fromJson(Map<String, dynamic> json) {
+    final int? standardId = DiaryUpdateListingModel.toInt(json['StandardId']);
+    final int? divisionId = DiaryUpdateListingModel.toInt(json['DivisionId']);
+
+    if (standardId == null || divisionId == null) {
+      throw FormatException('Invalid StandardDivision item: $json');
+    }
+
+    return DiaryStandardDivisionModel(
+      standardId: standardId,
+      standard: json['Standard']?.toString(),
+      divisionId: divisionId,
+      division: json['Division']?.toString(),
+    );
   }
 }

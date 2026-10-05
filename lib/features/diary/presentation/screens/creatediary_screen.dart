@@ -1101,6 +1101,8 @@
 import 'package:cristalteacher/core/appdata/appdata.dart';
 import 'package:cristalteacher/core/utils/custom_dropdown_field.dart';
 import 'package:cristalteacher/features/authentication/domain/entities/class_details_entity.dart';
+import 'package:cristalteacher/features/diary/domain/entities/update_listing_entity.dart';
+import 'package:cristalteacher/features/diary/domain/parameters/save_diary_parameter.dart';
 import 'package:cristalteacher/features/diary/presentation/cubit/diary_cubit.dart';
 import 'package:cristalteacher/features/diary/presentation/screens/creatediarydetails_screen.dart';
 import 'package:flutter/material.dart';
@@ -1108,9 +1110,31 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// Values taken from the diary being edited. Keeps the response entity type
 /// confined to the listener, so nothing else has to know about it.
+// class _EditingDiary {
+//   final int? standardId;
+//   final int? divisionId;
+//   final int? subjectId;
+//   final String? diaryTitle;
+//   final String? description;
+//   final String? diaryDate;
+//   final String? dueDate;
+//   final bool? isFavourite;
+//   final List<String> files;
+
+//   const _EditingDiary({
+//     required this.standardId,
+//     required this.divisionId,
+//     required this.subjectId,
+//     required this.diaryTitle,
+//     required this.description,
+//     required this.diaryDate,
+//     required this.dueDate,
+//     required this.isFavourite,
+//     required this.files,
+//   });
+// }
 class _EditingDiary {
-  final int? standardId;
-  final int? divisionId;
+  final List<DiaryStandardDivisionEntity> standardDivision;
   final int? subjectId;
   final String? diaryTitle;
   final String? description;
@@ -1120,8 +1144,7 @@ class _EditingDiary {
   final List<String> files;
 
   const _EditingDiary({
-    required this.standardId,
-    required this.divisionId,
+    required this.standardDivision,
     required this.subjectId,
     required this.diaryTitle,
     required this.description,
@@ -1370,109 +1393,236 @@ class _CreateDiaryScreenState extends State<CreateDiaryScreen> {
     return [];
   }
 
-  /// Puts the fetched diary onto the form. Falls back to the first
-  /// available option at each level when the saved id is no longer
-  /// present, so the form is never left in a half-selected state.
+  // void _applyEditPrefill(_EditingDiary diary) {
+  //   debugPrint('====================================');
+  //   debugPrint('APPLYING EDIT PREFILL');
+  //   debugPrint('Saved Standard ID : ${diary.standardId}');
+  //   debugPrint('Saved Division ID : ${diary.divisionId}');
+  //   debugPrint('Saved Subject ID  : ${diary.subjectId}');
+  //   debugPrint('====================================');
+
+  //   // ------------------------------------------------------------
+  //   // FIND THE SAVED CLASS DIRECTLY FROM THE CHECKBOX CLASS LIST
+  //   // ------------------------------------------------------------
+  //   Map<String, dynamic>? diaryClass;
+
+  //   if (diary.standardId != null && diary.divisionId != null) {
+  //     for (final Map<String, dynamic> item in classList) {
+  //       final int itemStandardId = item['standardId'] as int;
+  //       final int itemDivisionId = item['divisionId'] as int;
+
+  //       if (itemStandardId == diary.standardId &&
+  //           itemDivisionId == diary.divisionId) {
+  //         diaryClass = item;
+  //         break;
+  //       }
+  //     }
+  //   }
+
+  //   // ------------------------------------------------------------
+  //   // FIND THE SAVED SUBJECT
+  //   // ------------------------------------------------------------
+  //   SubjectDetails? subject;
+
+  //   if (diary.subjectId != null) {
+  //     for (final SubjectDetails item in subjects) {
+  //       if (item.subjectId == diary.subjectId) {
+  //         subject = item;
+  //         break;
+  //       }
+  //     }
+  //   }
+
+  //   // ------------------------------------------------------------
+  //   // APPLY EVERYTHING TO THE FORM
+  //   // ------------------------------------------------------------
+  //   setState(() {
+  //     // Remove the default class selected from AppData.
+  //     selectedClasses.clear();
+
+  //     // Select the class saved in the diary.
+  //     if (diaryClass != null) {
+  //       selectedClasses.add({
+  //         'standardId': diaryClass['standardId'],
+  //         'standardName': diaryClass['standardName'],
+  //         'divisionId': diaryClass['divisionId'],
+  //         'divisionName': diaryClass['divisionName'],
+  //       });
+  //     }
+
+  //     // Select the subject saved in the diary.
+  //     if (subject != null) {
+  //       selectedSubjectId = subject.subjectId;
+  //       selectedSubject = subject.subject?.trim();
+  //     }
+
+  //     // Restore dates.
+  //     diaryDate = DateTime.tryParse(diary.diaryDate ?? '') ?? diaryDate;
+
+  //     dueDate = DateTime.tryParse(diary.dueDate ?? '') ?? dueDate;
+
+  //     // Restore favourite.
+  //     isFavourite = diary.isFavourite ?? false;
+  //   });
+
+  //   debugPrint('====================================');
+  //   debugPrint('EDIT PREFILL APPLIED');
+  //   debugPrint('Selected Classes: $selectedClasses');
+  //   debugPrint(
+  //     'Selected Subject: $selectedSubject '
+  //     '($selectedSubjectId)',
+  //   );
+  //   debugPrint('Diary Date: $diaryDate');
+  //   debugPrint('Due Date  : $dueDate');
+  //   debugPrint('Favourite : $isFavourite');
+  //   debugPrint('Files     : ${diary.files.length}');
+  //   debugPrint('====================================');
+  // }
   void _applyEditPrefill(_EditingDiary diary) {
-    final int? diaryStandardId = diary.standardId;
+    final List<Map<String, dynamic>> availableClasses = classList;
+    final List<Map<String, dynamic>> savedClasses = [];
 
-    TutorshipClass? standard;
-
-    if (diaryStandardId != null) {
-      standard = _findStandard(diaryStandardId);
-
-      // The complete Standard list may not hold this class — try the
-      // teacher's own tutorship classes as well.
-      if (standard == null) {
-        for (final TutorshipClass item in tutorshipClasses) {
-          if (item.standardId == diaryStandardId) {
-            standard = item;
-            break;
-          }
+    // Find every class pair returned for this diary.
+    for (final DiaryStandardDivisionEntity pair in diary.standardDivision) {
+      for (final Map<String, dynamic> item in availableClasses) {
+        if (item['standardId'] == pair.standardId &&
+            item['divisionId'] == pair.divisionId) {
+          savedClasses.add(Map<String, dynamic>.from(item));
+          break;
         }
       }
     }
 
-    if (standard == null) {
-      debugPrint('EDIT PREFILL: standard ${diary.standardId} not found');
-
-      _showMessage('This diary belongs to a class that is not assigned to you');
-
-      // Dates and favourite are still worth restoring.
-      setState(() {
-        diaryDate = DateTime.tryParse(diary.diaryDate ?? '') ?? diaryDate;
-        dueDate = DateTime.tryParse(diary.dueDate ?? '') ?? dueDate;
-        isFavourite = diary.isFavourite ?? false;
-      });
-
-      return;
-    }
-
-    final List<DivisionDetails> newDivisions = _divisionsFor(standard);
-
-    DivisionDetails? division;
-
-    for (final DivisionDetails item in newDivisions) {
-      if (item.divisionId == diary.divisionId) {
-        division = item;
-        break;
-      }
-    }
-
-    division ??= newDivisions.isNotEmpty ? newDivisions.first : null;
-
-    SubjectDetails? subject;
-
-    for (final SubjectDetails item in subjects) {
-      if (item.subjectId == diary.subjectId) {
-        subject = item;
-        break;
-      }
-    }
-
-    subject ??= subjects.isNotEmpty ? subjects.first : null;
-
-    // The class this diary belongs to. Null when the saved division is no
-    // longer available, which simply leaves the grid unticked.
-    final Map<String, dynamic>? diaryClass = division?.divisionId == null
+    final SubjectDetails? savedSubject = diary.subjectId == null
         ? null
-        : {
-            'standardId': standard.standardId,
-            'standardName': standard.standard?.trim() ?? '',
-            'divisionId': division!.divisionId,
-            'divisionName': division.division?.trim() ?? '',
-          };
+        : _findSubject(diary.subjectId!);
 
     setState(() {
-      // Only the class this diary belongs to stays ticked.
-      selectedClasses.clear();
+      // Remove the class selected by default during initial loading.
+      selectedClasses
+        ..clear()
+        ..addAll(savedClasses);
 
-      if (diaryClass != null) {
-        selectedClasses.add(diaryClass);
-      }
-
-      selectedSubjectId = subject?.subjectId;
-      selectedSubject = subject?.subject?.trim();
+      selectedSubjectId = savedSubject?.subjectId;
+      selectedSubject = savedSubject?.subject?.trim();
 
       diaryDate = DateTime.tryParse(diary.diaryDate ?? '') ?? diaryDate;
       dueDate = DateTime.tryParse(diary.dueDate ?? '') ?? dueDate;
-
       isFavourite = diary.isFavourite ?? false;
     });
 
-    debugPrint('====================================');
-    debugPrint('EDIT PREFILL APPLIED');
-    debugPrint('Classes: $selectedClasses');
-    debugPrint(
-      'Subject: $selectedSubject '
-      '($selectedSubjectId)',
-    );
-    debugPrint('Diary Date: $diaryDate');
-    debugPrint('Due Date  : $dueDate');
-    debugPrint('Favourite : $isFavourite');
-    debugPrint('Files     : ${diary.files.length}');
-    debugPrint('====================================');
+    debugPrint('Saved class pairs: ${diary.standardDivision.length}');
+    debugPrint('Selected classes: $selectedClasses');
+    debugPrint('Selected subject: $selectedSubject ($selectedSubjectId)');
+
+    if (savedClasses.length != diary.standardDivision.length) {
+      _showMessage('Some saved classes are not in the available class list');
+    }
   }
+
+  /// Puts the fetched diary onto the form. Falls back to the first
+  /// available option at each level when the saved id is no longer
+  /// present, so the form is never left in a half-selected state.
+  // void _applyEditPrefill(_EditingDiary diary) {
+  //   final int? diaryStandardId = diary.standardId;
+
+  //   TutorshipClass? standard;
+
+  //   if (diaryStandardId != null) {
+  //     standard = _findStandard(diaryStandardId);
+
+  //     // The complete Standard list may not hold this class — try the
+  //     // teacher's own tutorship classes as well.
+  //     if (standard == null) {
+  //       for (final TutorshipClass item in tutorshipClasses) {
+  //         if (item.standardId == diaryStandardId) {
+  //           standard = item;
+  //           break;
+  //         }
+  //       }
+  //     }
+  //   }
+
+  //   if (standard == null) {
+  //     debugPrint('EDIT PREFILL: standard ${diary.standardId} not found');
+
+  //     _showMessage('This diary belongs to a class that is not assigned to you');
+
+  //     // Dates and favourite are still worth restoring.
+  //     setState(() {
+  //       diaryDate = DateTime.tryParse(diary.diaryDate ?? '') ?? diaryDate;
+  //       dueDate = DateTime.tryParse(diary.dueDate ?? '') ?? dueDate;
+  //       isFavourite = diary.isFavourite ?? false;
+  //     });
+
+  //     return;
+  //   }
+
+  //   final List<DivisionDetails> newDivisions = _divisionsFor(standard);
+
+  //   DivisionDetails? division;
+
+  //   for (final DivisionDetails item in newDivisions) {
+  //     if (item.divisionId == diary.divisionId) {
+  //       division = item;
+  //       break;
+  //     }
+  //   }
+
+  //   division ??= newDivisions.isNotEmpty ? newDivisions.first : null;
+
+  //   SubjectDetails? subject;
+
+  //   for (final SubjectDetails item in subjects) {
+  //     if (item.subjectId == diary.subjectId) {
+  //       subject = item;
+  //       break;
+  //     }
+  //   }
+
+  //   subject ??= subjects.isNotEmpty ? subjects.first : null;
+
+  //   // The class this diary belongs to. Null when the saved division is no
+  //   // longer available, which simply leaves the grid unticked.
+  //   final Map<String, dynamic>? diaryClass = division?.divisionId == null
+  //       ? null
+  //       : {
+  //           'standardId': standard.standardId,
+  //           'standardName': standard.standard?.trim() ?? '',
+  //           'divisionId': division!.divisionId,
+  //           'divisionName': division.division?.trim() ?? '',
+  //         };
+
+  //   setState(() {
+  //     // Only the class this diary belongs to stays ticked.
+  //     selectedClasses.clear();
+
+  //     if (diaryClass != null) {
+  //       selectedClasses.add(diaryClass);
+  //     }
+
+  //     selectedSubjectId = subject?.subjectId;
+  //     selectedSubject = subject?.subject?.trim();
+
+  //     diaryDate = DateTime.tryParse(diary.diaryDate ?? '') ?? diaryDate;
+  //     dueDate = DateTime.tryParse(diary.dueDate ?? '') ?? dueDate;
+
+  //     isFavourite = diary.isFavourite ?? false;
+  //   });
+
+  //   debugPrint('====================================');
+  //   debugPrint('EDIT PREFILL APPLIED');
+  //   debugPrint('Classes: $selectedClasses');
+  //   debugPrint(
+  //     'Subject: $selectedSubject '
+  //     '($selectedSubjectId)',
+  //   );
+  //   debugPrint('Diary Date: $diaryDate');
+  //   debugPrint('Due Date  : $dueDate');
+  //   debugPrint('Favourite : $isFavourite');
+  //   debugPrint('Files     : ${diary.files.length}');
+  //   debugPrint('====================================');
+  // }
 
   TutorshipClass? _findStandard(int standardId) {
     for (final TutorshipClass item in standardList) {
@@ -1662,6 +1812,15 @@ class _CreateDiaryScreenState extends State<CreateDiaryScreen> {
           standardName: firstSelectedClass['standardName'] as String,
           divisionId: firstSelectedClass['divisionId'] as int,
           divisionName: firstSelectedClass['divisionName'] as String,
+          // Pass every checked class/ division pair for CREATE.
+          selectedClasses: selectedClasses
+              .map(
+                (item) => DiaryStandardParameter(
+                  standardId: item['standardId'] as int,
+                  divisionId: item['divisionId'] as int,
+                ),
+              )
+              .toList(),
           subjectId: selectedSubjectId!,
           subjectName: selectedSubject!,
           diaryDate: diaryDate!,
@@ -1713,8 +1872,7 @@ class _CreateDiaryScreenState extends State<CreateDiaryScreen> {
               }
 
               _editingDiary = _EditingDiary(
-                standardId: data.standardId,
-                divisionId: data.divisionId,
+                standardDivision: data.standardDivision ?? const [],
                 subjectId: data.subjectId,
                 diaryTitle: data.diaryTitle,
                 description: data.description,

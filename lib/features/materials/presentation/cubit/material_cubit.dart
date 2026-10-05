@@ -4,10 +4,12 @@ import 'package:cristalteacher/features/materials/domain/entities/fetch_material
 import 'package:cristalteacher/features/materials/domain/entities/material_details_entity.dart';
 import 'package:cristalteacher/features/materials/domain/parameter/fetch_material_parameter.dart';
 import 'package:cristalteacher/features/materials/domain/parameter/save_material_parameter.dart';
+import 'package:cristalteacher/features/materials/domain/parameter/update_material_parameter.dart';
 import 'package:cristalteacher/features/materials/domain/usecases/delete_material_usecase.dart';
 import 'package:cristalteacher/features/materials/domain/usecases/fetch_material_details_usecase.dart';
 import 'package:cristalteacher/features/materials/domain/usecases/fetch_material_usecase.dart';
 import 'package:cristalteacher/features/materials/domain/usecases/save_material_usecase.dart';
+import 'package:cristalteacher/features/materials/domain/usecases/update_mateial_usecase.dart';
 import 'package:equatable/equatable.dart';
 
 part 'material_state.dart';
@@ -17,16 +19,19 @@ class MaterialCubit extends Cubit<MaterialState> {
   final SaveMaterialUseCase _saveMaterialUseCase;
   final DeleteMaterialUseCase _deleteMaterialUseCase;
   final FetchMaterialDetailsUseCase _fetchMaterialDetailsUseCase;
+  final UpdateMaterialUseCase _updateMaterialUseCase;
 
   MaterialCubit({
     required FetchMaterialUseCase fetchMaterialUseCase,
     required SaveMaterialUseCase saveMaterialUseCase,
     required FetchMaterialDetailsUseCase fetchMaterialDetailsUseCase,
     required DeleteMaterialUseCase deleteMaterialUseCase,
+    required UpdateMaterialUseCase updateMaterialUseCase,
   }) : _fetchMaterialUseCase = fetchMaterialUseCase,
        _fetchMaterialDetailsUseCase = fetchMaterialDetailsUseCase,
        _saveMaterialUseCase = saveMaterialUseCase,
        _deleteMaterialUseCase = deleteMaterialUseCase,
+       _updateMaterialUseCase = updateMaterialUseCase,
        super(MaterialInitial());
 
   Future<void> fetchMaterials(FetchMaterialParameter request) async {
@@ -133,6 +138,41 @@ class MaterialCubit extends Cubit<MaterialState> {
       print(stackTrace);
 
       emit(const FetchMaterialDetailsFailure('An unexpected error occurred'));
+    }
+  }
+
+  Future<void> updateMaterial(
+    int materialId,
+    UpdateMaterialParameter request,
+  ) async {
+    print('📘 Update Material Request');
+    print('Material ID: $materialId');
+
+    if (materialId <= 0) {
+      emit(const UpdateMaterialFailure('Invalid material ID'));
+      return;
+    }
+
+    emit(UpdateMaterialLoading());
+
+    try {
+      final result = await _updateMaterialUseCase(materialId, request);
+
+      result.fold(
+        (failure) {
+          print('❌ Update Material Failed: ${failure.message}');
+          emit(UpdateMaterialFailure(failure.message));
+        },
+        (response) {
+          print('✅ Update Material Success');
+          emit(UpdateMaterialSuccess(response));
+        },
+      );
+    } catch (e, stackTrace) {
+      print('❌ Exception during updateMaterial: $e');
+      print(stackTrace);
+
+      emit(const UpdateMaterialFailure('An unexpected error occurred'));
     }
   }
 }

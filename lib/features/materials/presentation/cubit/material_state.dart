@@ -93,3 +93,26 @@ class FetchMaterialDetailsFailure extends MaterialState {
   @override
   List<Object?> get props => [message];
 }
+
+class UpdateMaterialLoading extends MaterialState {
+  @override
+  List<Object?> get props => [];
+}
+
+class UpdateMaterialSuccess extends MaterialState {
+  final MasterResponseModel response;
+
+  const UpdateMaterialSuccess(this.response);
+
+  @override
+  List<Object?> get props => [response];
+}
+
+class UpdateMaterialFailure extends MaterialState {
+  final String message;
+
+  const UpdateMaterialFailure(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}

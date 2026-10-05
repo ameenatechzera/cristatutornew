@@ -1,6 +1,6 @@
 import 'package:cristalteacher/core/utils/typedef.dart';
-import 'package:cristalteacher/features/attendance/domain/entities/monthly_attendanceResult.dart';
-import 'package:cristalteacher/features/attendance/domain/parameters/monthlyAttendanceRequest.dart';
+import 'package:cristalteacher/features/attendance/domain/entities/monthly_attendance_result.dart';
+import 'package:cristalteacher/features/attendance/domain/parameters/monthly_attendance_request.dart';
 import 'package:cristalteacher/features/attendance/domain/repositories/attendancedetails_repository.dart';
 
 class FetchMonthlyAttendanceUseCase {
