@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:cristalteacher/features/authentication/presentation/screens/register_screen.dart';
 import 'package:cristalteacher/features/authentication/presentation/screens/second_splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -146,71 +147,95 @@ class FirstSplashScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-
+                    // BOTTOM: SKIP - DOTS - NEXT
                     Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 43,
+                      left: 20 * scale,
+                      right: 14 * scale,
+                      bottom: 19 * scale,
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: const BoxDecoration(
-                              color: primaryPurple,
-                              shape: BoxShape.circle,
+                          // SKIP BUTTON - LEFT
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const RegisterCodePage(),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              'Skip',
+                              style: TextStyle(
+                                color: primaryPurple,
+                                fontSize: 13 * scale,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
-                          const SizedBox(width: 3),
-                          ...List.generate(
-                            3,
-                            (_) => Padding(
-                              padding: const EdgeInsets.only(right: 3),
-                              child: Container(
-                                width: 6,
-                                height: 6,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFD1D1D6),
-                                  shape: BoxShape.circle,
+
+                          Expanded(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: const BoxDecoration(
+                                    color: primaryPurple,
+                                    shape: BoxShape.circle,
+                                  ),
                                 ),
+                                const SizedBox(width: 3),
+                                ...List.generate(
+                                  3,
+                                  (_) => Padding(
+                                    padding: const EdgeInsets.only(right: 3),
+                                    child: Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFFD1D1D6),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          GestureDetector(
+                            onTap: () {
+                              if (onNext != null) {
+                                onNext!();
+                                return;
+                              }
+
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const SecondSplashScreen(),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              width: 50,
+                              height: 50,
+                              decoration: const BoxDecoration(
+                                color: primaryPurple,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.arrow_forward_rounded,
+                                color: Colors.white,
+                                size: 25,
                               ),
                             ),
                           ),
                         ],
-                      ),
-                    ),
-
-                    Positioned(
-                      right: 14,
-                      bottom: 19,
-                      child: GestureDetector(
-                        onTap: () {
-                          if (onNext != null) {
-                            onNext!();
-                            return;
-                          }
-
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const SecondSplashScreen(),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          width: 50,
-                          height: 50,
-                          decoration: const BoxDecoration(
-                            color: primaryPurple,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.arrow_forward_rounded,
-                            color: Colors.white,
-                            size: 25,
-                          ),
-                        ),
                       ),
                     ),
                   ],

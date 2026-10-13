@@ -199,4 +199,13 @@ class ApiConstants {
   static String updateMaterialPath(String baseUrl, int materialId) {
     return '${baseUrl}app/update-material/$materialId';
   }
+
+  /// Returns update diarylisitng
+  static String getFeedUpdateListingPath(String baseUrl) {
+    return '${baseUrl}feedmaster-byid';
+  }
+
+  static String getUpdateFeedPath(String baseUrl) {
+    return '${baseUrl}update-feedmaster';
+  }
 }

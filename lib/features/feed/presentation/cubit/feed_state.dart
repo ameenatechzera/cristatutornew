@@ -56,3 +56,31 @@ class DeleteFeedFailure extends FeedState {
   @override
   List<Object> get props => [message];
 }
+
+class FetchFeedUpdateListingLoading extends FeedState {}
+
+class FetchFeedUpdateListingSuccess extends FeedState {
+  final FeedUpdateListingEntity response;
+
+  const FetchFeedUpdateListingSuccess(this.response);
+}
+
+class FetchFeedUpdateListingFailure extends FeedState {
+  final String message;
+
+  const FetchFeedUpdateListingFailure(this.message);
+}
+
+class UpdateFeedLoading extends FeedState {}
+
+class UpdateFeedSuccess extends FeedState {
+  final MasterResponseModel response;
+
+  const UpdateFeedSuccess(this.response);
+}
+
+class UpdateFeedFailure extends FeedState {
+  final String message;
+
+  const UpdateFeedFailure(this.message);
+}

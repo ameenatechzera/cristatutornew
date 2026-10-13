@@ -58,6 +58,8 @@ import 'package:cristalteacher/features/feed/data/datasources/feed_remote_data_s
 import 'package:cristalteacher/features/feed/data/repositories/feed_repository_impl.dart';
 import 'package:cristalteacher/features/feed/domain/repository/feed_repository.dart';
 import 'package:cristalteacher/features/feed/domain/usecases/delete_feed_usecase.dart';
+import 'package:cristalteacher/features/feed/domain/usecases/feed_update_isting_usecase.dart';
+import 'package:cristalteacher/features/feed/domain/usecases/feed_update_usecase.dart';
 import 'package:cristalteacher/features/feed/domain/usecases/fetch_feed_usecase.dart';
 import 'package:cristalteacher/features/feed/domain/usecases/save_feed_usecase.dart';
 import 'package:cristalteacher/features/feed/presentation/cubit/feed_cubit.dart';
@@ -182,12 +184,16 @@ Future<void> init() async {
       fetchFeedUseCase: sl(),
       saveFeedUseCase: sl(),
       deleteFeedUseCase: sl(),
+      fetchFeedUpdateListingUseCase: sl(),
+      updateFeedUseCase: sl(),
     ),
   );
 
   sl.registerLazySingleton(() => FetchFeedUseCase(sl()));
   sl.registerLazySingleton(() => SaveFeedUseCase(sl()));
   sl.registerLazySingleton(() => DeleteFeedUseCase(sl()));
+  sl.registerLazySingleton(() => FetchFeedUpdateListingUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateFeedUseCase(sl()));
 
   sl.registerLazySingleton<FeedRepository>(() => FeedRepositoryImpl(sl()));
 

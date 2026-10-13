@@ -2608,14 +2608,19 @@ import 'package:cristalteacher/features/materials/domain/entities/material_detai
 import 'package:cristalteacher/features/materials/domain/parameter/save_material_parameter.dart';
 import 'package:cristalteacher/features/materials/domain/parameter/update_material_parameter.dart';
 import 'package:cristalteacher/features/materials/presentation/cubit/material_cubit.dart';
+import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart' hide MaterialState;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 
 /// One file chosen in the Documents tab. Keeps the picker's own name, the
 /// extension and the size next to the File, so the tiles can be drawn
 /// without parsing the path or hitting the disk again.
+
+bool _isPreparingFiles = false;
+
 class PickedMaterialFile {
   final File file;
   final String name;
@@ -2690,7 +2695,6 @@ class _AddMaterialPageState extends State<AddMaterialPage> {
   bool _isFetchingEditDetails = false;
   bool _isInitialDataApplied = false;
   bool isFavorite = false;
-
   final List<String> tabs = const ['Documents', 'Links', 'Notes'];
 
   final TextEditingController linkController = TextEditingController();
@@ -3138,7 +3142,7 @@ class _AddMaterialPageState extends State<AddMaterialPage> {
 
   //   if (!mounted) return;
 
-  //   // One pair for every checked class.
+  //   // Include every checked Standard + Division pair.
   //   final List<StandardDivisionPair> standardDivisionList = selectedClasses
   //       .map(
   //         (selectedClass) => StandardDivisionPair(
@@ -3148,27 +3152,96 @@ class _AddMaterialPageState extends State<AddMaterialPage> {
   //       )
   //       .toList();
 
-  //   context.read<MaterialCubit>().saveMaterial(
-  //     SaveMaterialParameter(
-  //       materials: selectedTab == 0
-  //           ? selectedFiles.map((item) => item.file).toList()
-  //           : <File>[],
-  //       staffId: employeeId,
-  //       accYear: accYear,
-  //       subjectId: selectedSubjectId!,
-  //       branchId: 1,
-  //       createdUser: userId.toString(),
-  //       documentName: selectedTab == 0
-  //           ? selectedFiles.map((item) => item.name).join(', ')
-  //           : selectedTab == 1
-  //           ? 'Link Material'
-  //           : 'Note Material',
-  //       notes: selectedTab == 2 ? notesController.text.trim() : '',
-  //       link: selectedTab == 1 ? linkController.text.trim() : '',
-  //       favorite: isFavorite,
-  //       standardDivisionList: standardDivisionList,
-  //     ),
+  //   final SaveMaterialParameter request = SaveMaterialParameter(
+  //     materials: selectedTab == 0
+  //         ? selectedFiles.map((item) => item.file).toList()
+  //         : <File>[],
+  //     staffId: employeeId,
+  //     accYear: accYear,
+  //     standardDivisionList: standardDivisionList,
+  //     subjectId: selectedSubjectId!,
+  //     branchId: AppData.branchId ?? 1,
+  //     createdUser: userId.toString(),
+  //     documentName: selectedTab == 0
+  //         ? [
+  //             if (widget.isEditing &&
+  //                 existingMaterialUrls.isNotEmpty &&
+  //                 _originalDocumentName.trim().isNotEmpty)
+  //               _originalDocumentName.trim(),
+  //             ...selectedFiles.map((item) => item.name),
+  //           ].join(', ')
+  //         : selectedTab == 1
+  //         ? 'Link Material'
+  //         : 'Note Material',
+  //     // documentName: selectedTab == 0
+  //     //     ? selectedFiles.map((item) => item.name).join(', ')
+  //     //     : selectedTab == 1
+  //     //     ? 'Link Material'
+  //     //     : 'Note Material',
+  //     notes: selectedTab == 2 ? notesController.text.trim() : '',
+  //     link: selectedTab == 1 ? linkController.text.trim() : '',
+  //     favorite: isFavorite,
   //   );
+
+  //   debugPrint('==============================================');
+  //   debugPrint('SAVE MATERIAL REQUEST');
+  //   debugPrint('==============================================');
+  //   debugPrint('StaffId: ${request.staffId}');
+  //   debugPrint('AccYear: ${request.accYear}');
+  //   debugPrint(
+  //     'StandardId: '
+  //     '${request.standardDivisionList.map((pair) => pair.toJson()).toList()}',
+  //   );
+  //   debugPrint('SubjectId: ${request.subjectId}');
+  //   debugPrint('branchId: ${request.branchId}');
+  //   debugPrint('CreatedUser: ${request.createdUser}');
+  //   debugPrint('documentName: ${request.documentName}');
+  //   debugPrint('notes: ${request.notes}');
+  //   debugPrint('link: ${request.link}');
+  //   debugPrint('favorite: ${request.favorite}');
+  //   debugPrint('Material file count: ${request.materials.length}');
+  //   debugPrint('==============================================');
+
+  //   // context.read<MaterialCubit>().saveMaterial(request);
+  //   final cubit = context.read<MaterialCubit>();
+
+  //   if (widget.isEditing) {
+  //     final updateRequest = UpdateMaterialParameter(
+  //       materials: request.materials,
+  //       staffId: request.staffId,
+  //       accYear: request.accYear,
+  //       standardDivisionList: request.standardDivisionList,
+  //       subjectId: request.subjectId,
+  //       branchId: request.branchId,
+  //       createdUser: request.createdUser,
+  //       documentName: request.documentName,
+  //       notes: request.notes,
+  //       link: request.link,
+  //       favorite: request.favorite,
+  //     );
+
+  //     debugPrint('========== UPDATE MATERIAL REQUEST ==========');
+  //     debugPrint('Material ID: ${widget.materialId}');
+  //     debugPrint('Staff ID: ${updateRequest.staffId}');
+  //     debugPrint('Academic Year: ${updateRequest.accYear}');
+  //     debugPrint(
+  //       'Standard-Division: '
+  //       '${updateRequest.standardDivisionList.map((e) => e.toJson()).toList()}',
+  //     );
+  //     debugPrint('Subject ID: ${updateRequest.subjectId}');
+  //     debugPrint('Branch ID: ${updateRequest.branchId}');
+  //     debugPrint('Created User: ${updateRequest.createdUser}');
+  //     debugPrint('Document Name: "${updateRequest.documentName}"');
+  //     debugPrint('Notes: "${updateRequest.notes}"');
+  //     debugPrint('Link: "${updateRequest.link}"');
+  //     debugPrint('Favorite: ${updateRequest.favorite}');
+  //     debugPrint('Files Count: ${updateRequest.materials.length}');
+  //     debugPrint('==============================================');
+
+  //     await cubit.updateMaterial(widget.materialId!, updateRequest);
+  //   } else {
+  //     await cubit.saveMaterial(request);
+  //   }
   // }
   Future<void> _saveMaterial() async {
     FocusScope.of(context).unfocus();
@@ -3324,17 +3397,48 @@ class _AddMaterialPageState extends State<AddMaterialPage> {
     final cubit = context.read<MaterialCubit>();
 
     if (widget.isEditing) {
+      List<File> keptFiles = [];
+
+      if (selectedTab == 0 && existingMaterialUrls.isNotEmpty) {
+        setState(() => _isPreparingFiles = true);
+        try {
+          keptFiles = await _downloadExistingFiles();
+        } catch (error) {
+          debugPrint('Download existing files failed: $error');
+          if (mounted) setState(() => _isPreparingFiles = false);
+          _showMessage(
+            'Could not load existing files. Check your connection and try again.',
+          );
+          return;
+        }
+        if (!mounted) return;
+        setState(() => _isPreparingFiles = false);
+      }
+
+      final List<File> allFiles = selectedTab == 0
+          ? [...keptFiles, ...selectedFiles.map((e) => e.file)]
+          : <File>[];
+
+      final String documentName = selectedTab == 0
+          ? [
+              for (int i = 0; i < existingMaterialUrls.length; i++)
+                _fileNameFromUrl(existingMaterialUrls[i], i),
+              ...selectedFiles.map((e) => e.name),
+            ].join(', ')
+          : request.documentName;
+
       await cubit.updateMaterial(
         widget.materialId!,
         UpdateMaterialParameter(
-          materials: request.materials,
+          materials: allFiles,
+          existingMaterials: const [],
           staffId: request.staffId,
           accYear: request.accYear,
           standardDivisionList: request.standardDivisionList,
           subjectId: request.subjectId,
           branchId: request.branchId,
           createdUser: request.createdUser,
-          documentName: request.documentName,
+          documentName: documentName,
           notes: request.notes,
           link: request.link,
           favorite: request.favorite,
@@ -3343,6 +3447,42 @@ class _AddMaterialPageState extends State<AddMaterialPage> {
     } else {
       await cubit.saveMaterial(request);
     }
+  }
+
+  String _fileNameFromUrl(String url, int index) {
+    final Uri? uri = Uri.tryParse(url);
+    if (uri != null && uri.pathSegments.isNotEmpty) {
+      return Uri.decodeComponent(uri.pathSegments.last);
+    }
+    return 'attachment_${index + 1}';
+  }
+
+  /// Downloads the kept server files so they can be re-uploaded with the new ones.
+  Future<List<File>> _downloadExistingFiles() async {
+    final Directory base = await getTemporaryDirectory();
+    final Directory dir = await base.createTemp('material_');
+    final Dio downloader = Dio();
+    final List<File> files = [];
+
+    for (int i = 0; i < existingMaterialUrls.length; i++) {
+      final String url = existingMaterialUrls[i];
+
+      final Response<List<int>> res = await downloader.get<List<int>>(
+        url,
+        options: Options(responseType: ResponseType.bytes),
+      );
+
+      if (res.statusCode != 200 || res.data == null) {
+        throw Exception('Unable to download ${_fileNameFromUrl(url, i)}');
+      }
+
+      // Prefix with the index so a new file with the same name can't collide.
+      final File file = File('${dir.path}/${i}_${_fileNameFromUrl(url, i)}');
+      await file.writeAsBytes(res.data!);
+      files.add(file);
+    }
+
+    return files;
   }
 
   void _showMessage(String message, {Color backgroundColor = Colors.red}) {

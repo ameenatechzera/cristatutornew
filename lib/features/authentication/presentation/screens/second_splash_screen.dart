@@ -1,3 +1,4 @@
+import 'package:cristalteacher/features/authentication/presentation/screens/register_screen.dart';
 import 'package:cristalteacher/features/authentication/presentation/screens/third_splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -231,6 +232,34 @@ class SecondSplashScreen extends StatelessWidget {
                             ),
                           ),
                         ],
+                      ),
+                    ),
+                    /*
+                     * SKIP BUTTON
+                     * DIRECTLY UNDER DOTS
+                     */
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 10,
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RegisterCodePage(),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          'Skip',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: primaryPurple,
+                            fontSize: 12 * scale,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ),
 

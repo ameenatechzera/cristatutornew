@@ -248,6 +248,34 @@ class ThirdSplashScreen extends StatelessWidget {
                         ],
                       ),
                     ),
+                    /*
+                     * SKIP BUTTON
+                     * DIRECTLY UNDER DOTS
+                     */
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 10,
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RegisterCodePage(),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          'Skip',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: primaryPurple,
+                            fontSize: 12 * scale,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
 
                     /*
                      * BACK BUTTON

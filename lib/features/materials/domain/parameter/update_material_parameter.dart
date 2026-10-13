@@ -9,6 +9,7 @@ import 'save_material_parameter.dart';
 
 class UpdateMaterialParameter {
   final List<File> materials;
+  final List<String> existingMaterials; // NEW: URLs to keep
   final int staffId;
   final String accYear;
   final List<StandardDivisionPair> standardDivisionList;
@@ -22,6 +23,7 @@ class UpdateMaterialParameter {
 
   const UpdateMaterialParameter({
     required this.materials,
+    this.existingMaterials = const [], // NEW
     required this.staffId,
     required this.accYear,
     required this.standardDivisionList,
@@ -51,12 +53,14 @@ class UpdateMaterialParameter {
       MapEntry('notes', notes),
       MapEntry('link', link),
       MapEntry('favorite', favorite.toString()),
+      // NEW: files the server must keep (confirm the name/format with backend)
+      MapEntry('ExistingMaterial', jsonEncode(existingMaterials)),
     ]);
 
     for (final file in materials) {
       formData.files.add(
         MapEntry(
-          'Material',
+          'Material[]', // was 'Material'; now matches saveMaterial
           await MultipartFile.fromFile(
             file.path,
             filename: file.uri.pathSegments.last,
